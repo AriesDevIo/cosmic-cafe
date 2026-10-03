@@ -9,6 +9,7 @@ local order = {
 	"EffectsController",
 	"HUDController",
 	"ShopController",
+	"StaffController",
 	"WorldObjectsController",
 	-- StateController last: it fires Ready, so every listener must be connected.
 	"StateController",

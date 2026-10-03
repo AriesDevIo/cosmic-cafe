@@ -19,6 +19,7 @@ local order = {
 	"EconomyService",
 	"CodexService",
 	"CafeService",
+	"StaffService",
 }
 
 local services: { Service } = {}
