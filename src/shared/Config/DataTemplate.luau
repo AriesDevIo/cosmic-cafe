@@ -10,6 +10,22 @@ local DataTemplate = {}
 
 DataTemplate.version = 1
 
+-- DataStore settings (used by DataService).
+DataTemplate.store = {
+	name = "CosmicCafe_Profiles_v1",
+	keyPrefix = "Player_",
+	-- A session lock older than this is considered dead (crashed server) and is stolen.
+	lockTimeoutSeconds = 30 * 60,
+	-- While another live server holds the lock, retry this many times...
+	loadAttempts = 6,
+	-- ...waiting this long between attempts, then steal the lock.
+	loadRetryDelay = 5,
+	saveAttempts = 3,
+	saveRetryDelay = 2,
+	-- Seconds BindToClose waits for the final saves.
+	shutdownTimeout = 25,
+}
+
 function DataTemplate.new(): Types.Profile
 	local worlds: { [string]: Types.WorldSave } = {}
 	for _, world in Worlds.list do
