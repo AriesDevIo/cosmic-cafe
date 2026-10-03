@@ -22,6 +22,13 @@ local order = {
 }
 
 for _, name in order do
-	local controller = require(Controllers:WaitForChild(name)) :: any
-	(controller :: Controller).start()
+	-- One broken controller must not stop the rest (StateController sends Ready).
+	local ok, err = pcall(function()
+		local controller = require(Controllers:WaitForChild(name)) :: any
+		(controller :: Controller).start()
+		return nil
+	end)
+	if not ok then
+		warn("[CosmicCafe] " .. name .. " failed to start: " .. tostring(err))
+	end
 end

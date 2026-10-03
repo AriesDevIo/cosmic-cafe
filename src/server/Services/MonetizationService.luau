@@ -19,6 +19,7 @@ local MonetizationService = {}
 MonetizationService.changed = Signal.new() :: Signal.Signal<Player>
 
 local owned: { [Player]: { [string]: boolean } } = {}
+local checked: { [Player]: boolean } = {} -- every pass has been looked up
 
 local function checkPass(player: Player, passId: string): boolean
 	local pass = Monetization.passes[passId]
@@ -39,6 +40,14 @@ function MonetizationService.ownedPasses(player: Player): { [string]: boolean }
 	return owned[player] or {}
 end
 
+-- Yields until the player's passes are known (or `timeout` seconds pass).
+function MonetizationService.waitLoaded(player: Player, timeout: number)
+	local deadline = os.clock() + timeout
+	while not checked[player] and player.Parent and os.clock() < deadline do
+		task.wait(0.1)
+	end
+end
+
 function MonetizationService.init() end
 
 function MonetizationService.start()
@@ -48,6 +57,7 @@ function MonetizationService.start()
 		for passId in Monetization.passes do
 			passes[passId] = checkPass(player, passId)
 		end
+		checked[player] = true
 		MonetizationService.changed:fire(player)
 	end
 	Players.PlayerAdded:Connect(onPlayerAdded)
@@ -56,6 +66,7 @@ function MonetizationService.start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		owned[player] = nil
+		checked[player] = nil
 	end)
 
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamePassId, purchased)

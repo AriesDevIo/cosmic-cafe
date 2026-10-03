@@ -31,7 +31,7 @@ function OfflineService.start()
 		end
 	end)
 
-	-- Pay once the client is listening (game passes are known by then too).
+	-- Pay once the client is listening (StateService waits for pass ownership first).
 	StateService.ready:connect(function(player, profile)
 		local away = pending[player]
 		pending[player] = nil

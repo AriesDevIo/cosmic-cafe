@@ -47,6 +47,7 @@ DataService.loaded = Signal.new() :: Signal.Signal<Player, Profile>
 DataService.releasing = Signal.new() :: Signal.Signal<Player, Profile>
 
 local entries: { [Player]: Entry } = {}
+local savesInFlight = 0 -- BindToClose waits for these
 local store: Store
 local usingMock = false
 
@@ -143,6 +144,9 @@ local function loadProfile(player: Player): Profile?
 		local lockedByOther = false
 		local ok, err = pcall(function()
 			store.update(key, function(old: Record?): Record?
+				-- UpdateAsync may call this more than once: only the last call counts
+				claimed = nil
+				lockedByOther = false
 				local record: Record = old or { data = nil, meta = {} }
 				record.meta = record.meta or {}
 				local session = record.meta.session
@@ -194,6 +198,7 @@ local function saveEntry(player: Player, entry: Entry, release: boolean): boolea
 	if release then
 		entry.released = true
 	end
+	savesInFlight += 1
 	while entry.saving do
 		task.wait()
 	end
@@ -228,6 +233,7 @@ local function saveEntry(player: Player, entry: Entry, release: boolean): boolea
 		task.wait(STORE.saveRetryDelay)
 	end
 	entry.saving = false
+	savesInFlight -= 1
 
 	if lost then
 		entry.released = true
@@ -348,7 +354,8 @@ function DataService.start()
 			end)
 		end
 		local deadline = os.clock() + STORE.shutdownTimeout
-		while pending > 0 and os.clock() < deadline do
+		-- also wait for saves already started by PlayerRemoving
+		while (pending > 0 or savesInFlight > 0) and os.clock() < deadline do
 			task.wait(0.1)
 		end
 	end)

@@ -105,6 +105,7 @@ local function syncStation(cafe: Cafe, station: Station)
 	local level = Stats.dishLevel(profile, station.dishId)
 	local auto = Stats.hasAutoCook(profile, cafe.worldId)
 	local part = station.part
+	part:SetAttribute("Dish", station.dishId) -- mirrored for Model stations
 	part:SetAttribute("Level", level)
 	part:SetAttribute("Ready", station.tray)
 	part:SetAttribute("TrayCapacity", CAFE.trayCapacity)
@@ -447,11 +448,15 @@ local function teardown(player: Player)
 	end
 	for _, station in cafe.stations do
 		station.prompt:Destroy()
-		for _, name in { "Level", "Ready", "Cooking", "CookEnd", "CookTime", "Auto", ATTR.Owner } do
+		for _, name in { "Level", "Ready", "TrayCapacity", "Cooking", "CookEnd", "CookTime", "Auto", ATTR.Owner } do
 			station.part:SetAttribute(name, nil)
 		end
 	end
 	cafe.folder:Destroy() -- customers live in here
+	local decor = cafe.plot.root:FindFirstChild("VIPDecor")
+	if decor then
+		decor:Destroy()
+	end
 end
 
 local function applyDecor(player: Player, plot: Plot)
@@ -629,15 +634,6 @@ function CafeService.hasCriticWaiting(player: Player): boolean
 		end
 	end
 	return false
-end
-
--- Rebuilds the cafe from scratch (after a Franchise reset).
-function CafeService.rebuild(player: Player)
-	local plot = WorldService.currentPlot(player)
-	local profile = DataService.get(player)
-	if plot and profile then
-		setup(player, profile.currentWorld, plot)
-	end
 end
 
 function CafeService.init()

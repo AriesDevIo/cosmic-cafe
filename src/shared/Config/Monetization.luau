@@ -48,6 +48,9 @@ Monetization.passes = {
 
 Monetization.doubleMoneyMultiplier = 2
 
+-- Max seconds a joining player waits for pass ownership before offline pay.
+Monetization.ownershipTimeout = 10
+
 -- Badge ids (0 = disabled).
 Monetization.badges = {
 	FirstDiscovery = 0, -- first player on a server to discover a recipe

@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared.Config.Economy)
+local Monetization = require(Shared.Config.Monetization)
 local Net = require(Shared.Net)
 local Signal = require(Shared.Util.Signal)
 local Types = require(Shared.Types)
@@ -100,11 +101,15 @@ function StateService.init() end
 
 function StateService.start()
 	Net.onServerEvent("Ready", function(player)
-		if readyPlayers[player] then
+		if readyPlayers[player] ~= nil then
 			return
 		end
+		readyPlayers[player] = false -- loading: ignore repeated Ready
 		local profile = DataService.waitFor(player)
-		if profile == nil then
+		-- passes change offline pay (2x money, +offline time), so know them first
+		MonetizationService.waitLoaded(player, Monetization.ownershipTimeout)
+		if profile == nil or player.Parent == nil then
+			readyPlayers[player] = nil
 			return
 		end
 		readyPlayers[player] = true

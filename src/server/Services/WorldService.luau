@@ -540,7 +540,7 @@ local function hookPortal(portal: Instance)
 	if part == nil or type(target) ~= "string" or Worlds.byId[target] == nil then
 		return
 	end
-	local last: { [Player]: number } = {}
+	local last: { [number]: number } = {} -- UserId -> last touch
 	part.Touched:Connect(function(hit)
 		local character = hit:FindFirstAncestorOfClass("Model")
 		local player = if character then Players:GetPlayerFromCharacter(character) else nil
@@ -548,10 +548,10 @@ local function hookPortal(portal: Instance)
 			return
 		end
 		local now = os.clock()
-		if (last[player] or 0) + Map.portalCooldown > now then
+		if (last[player.UserId] or 0) + Map.portalCooldown > now then
 			return
 		end
-		last[player] = now
+		last[player.UserId] = now
 		local profile = DataService.get(player)
 		if profile == nil or profile.currentWorld == target then
 			return

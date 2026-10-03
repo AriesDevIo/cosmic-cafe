@@ -68,7 +68,9 @@ function Builder.label(props: { [string]: any }): TextLabel
 		Text = "",
 	}
 	for key, value in props do
-		defaults[key] = value
+		if key ~= "MaxTextSize" then -- belongs to the UITextSizeConstraint below
+			defaults[key] = value
+		end
 	end
 	local label = Builder.new("TextLabel", defaults)
 	Builder.new("UITextSizeConstraint", { MaxTextSize = props.MaxTextSize or 28, Parent = label })
