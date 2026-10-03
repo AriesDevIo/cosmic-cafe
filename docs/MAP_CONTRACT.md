@@ -16,9 +16,9 @@ Tag names and placeholder sizes live in `src/shared/Config/Map.luau`.
 | --- | --- | --- | --- | --- |
 | `CafePlot` | A `BasePart` (the floor) or a `Model` | `World` (string): a world id, e.g. `StreetStall` | `PlotId` (string) | One player's cafe in that world. Build one per player slot (= your server's max players); when every plot of a world is taken, extra plots are generated in a row next to the first one. The plot's **top surface** (a part) or **pivot** (a model) is the origin; **+Z (LookVector reversed) is the front** where customers come from. |
 | `Station` | A `BasePart` or `Model` | `Dish` (string): a dish id, e.g. `Coffee` | `PlotId` | A cooking station. Gets a "Cook" ProximityPrompt and a billboard. One per dish per plot; missing ones are generated in a row at the back of the plot. |
-| `Counter` | A `BasePart` or `Model` | – | `PlotId` | Fallback customer spots when a plot has no tables. Generated if missing. |
-| `Table` | A `BasePart` or `Model` | – | `PlotId` | Each table is one customer spot; customers stand on its front side. Generated (6) if a plot has none. |
-| `CustomerSpawn` | A `BasePart` (can be invisible) | – | `PlotId` | Where customers appear and leave to. Generated in front of the plot if missing. |
+| `Counter` | A `BasePart` or `Model` | – | `PlotId` | Customers queue in front of it (toward the plot's front, 3 studs apart). Generated if missing. |
+| `Table` | A `BasePart` or `Model` | – | `PlotId` | Where served customers eat. `Seat`s inside the table model are used for sitting; without seats customers take their food away. Generated (6) if a plot has none. |
+| `CustomerSpawn` | A `BasePart` (can be invisible) | – | `PlotId` | Where customers (R15 avatars) appear and leave to; they pathfind from here, so keep a walkable route to the counter and tables. Generated in front of the plot if missing. |
 | `WorldPortal` | A `BasePart` or `Model` | `Target` (string): world id to travel to | – | Touching it travels to your plot in `Target` (if unlocked; otherwise shows the price). If no portal targets a world, a placeholder portal to it is generated in every world. |
 | `UnlockGate` | A `BasePart` or `Model` (e.g. a door/barrier) | `World` (string): the world it guards | – | Gets an "Unlock" ProximityPrompt. Once *you* own the world it becomes non-collidable and see-through **for you only** (client side). Optional; none are generated. |
 
@@ -120,7 +120,9 @@ Dish ids (`Config/Dishes.luau`):
 | buildable `Model` | `BuiltAt`, `OwnerUserId` | Server time it was bought (`0` = restored on join, no animation). |
 | buy pad `Part` (tag `BuyPad`) | `BuildId`, `DisplayName`, `Cost`, `Kind`, `OwnerUserId` | Generated pads in `Workspace.CosmicCafePads`. |
 | `Station` part | `Level`, `Ready`, `TrayCapacity`, `Cooking`, `CookEnd`, `CookTime`, `Auto`, `OwnerUserId` | Read by the client billboard. |
-| customer `Model` (tag `CafeCustomer`) | `Species`, `Order`, `Golden`, `Critic`, `Arrived`, `PatienceEnd`, `Leaving`, `OwnerUserId` | Read by the client order bubble. |
+| customer `Model` (tag `CafeCustomer`) | `Order`, `Species`, `VIP`, `Golden`, `Critic`, `Queued`, `PatienceEnd`, `Served`, `Eating`, `Leaving`, `OwnerUserId` | Read by the client order bubble. `Species` is only set for aliens / the critic. |
+| cash stack `Model` (tag `CashStack`) | `Value`, `OwnerUserId` | Cash left on a table; touch or tap to collect. |
+| station state part (tag `CafeStation`) | see `Station` above | Every station in use, tagged or built. |
 | `Workspace` | `Weather_<WorldId>`, `WeatherEnds_<WorldId>` | Current weather rush (`""` when calm). |
 
 ## Generated objects

@@ -9,6 +9,8 @@ local Sounds = {
 	Buy = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.4, pitch = 1.5 },
 	Error = { id = "rbxasset://sounds/clickfast.wav", volume = 0.6, pitch = 0.6 },
 	Unlock = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.7, pitch = 0.6 },
+	Serve = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.35, pitch = 1.3 },
+	Cash = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.5, pitch = 1.8 },
 	Build = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.7, pitch = 0.5 },
 	Cook = { id = "rbxasset://sounds/clickfast.wav", volume = 0.3, pitch = 1.4 },
 }

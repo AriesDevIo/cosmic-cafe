@@ -2,6 +2,7 @@
 -- Always-visible HUD: money, income/s, the "next unlock" progress bar, the tip
 -- streak meter, weather banner and the menu buttons.
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -95,6 +96,7 @@ local function build()
 		Text = "$0",
 		Parent = moneyPanel,
 	})
+	Builder.new("UIScale", { Name = "Pop", Parent = moneyLabel })
 	incomeLabel = Builder.label({
 		Name = "Income",
 		TextColor3 = Theme.colors.textDim,
@@ -318,6 +320,15 @@ local function refreshUnlock()
 	unlockFill.BackgroundColor3 = if nextUnlock.progress >= 1 then Theme.colors.gold else Theme.colors.good
 end
 
+-- Center of the cash counter in raw viewport pixels (for flying coins).
+local function cashCounterPosition(): Vector2?
+	if not moneyLabel.Visible then
+		return nil
+	end
+	local center = moneyLabel.AbsolutePosition + moneyLabel.AbsoluteSize / 2
+	return center + GuiService:GetGuiInset()
+end
+
 local function refreshMoney(money: number)
 	EffectsController.animateNumber("money", money, function(value)
 		moneyLabel.Text = BigNum.money(value)
@@ -375,6 +386,14 @@ end
 
 function HUDController.start()
 	build()
+	EffectsController.setCoinTarget(cashCounterPosition)
+	EffectsController.coinsArrived:connect(function()
+		local pop = moneyLabel:FindFirstChild("Pop") :: UIScale?
+		if pop then
+			pop.Scale = 1.25
+			TweenService:Create(pop, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		end
+	end)
 	StateController.changed:connect(refreshMenus)
 	RunService.RenderStepped:Connect(function()
 		local wave = (math.sin(os.clock() * 6) + 1) / 2

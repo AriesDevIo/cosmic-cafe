@@ -129,19 +129,18 @@ end
 -- Customers -----------------------------------------------------------------------------
 
 local function makeCustomerView(model: Model): CustomerView?
-	local root = model.PrimaryPart or model:FindFirstChild("Root")
+	local root = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart")
 	if root == nil or not root:IsA("BasePart") then
 		return nil
 	end
-	local species = Customers.byId[model:GetAttribute("Species") :: string]
-	if species == nil then
-		return nil
-	end
-	local rarity = Customers.rarities[species.rarity]
+	-- people have no name tag; VIP aliens, the Golden Alien and the critic do
+	local speciesId = model:GetAttribute("Species")
+	local species = if type(speciesId) == "string" then Customers.byId[speciesId] else nil
+	local rarity = if species then Customers.rarities[species.rarity] else nil
 	local gui = Builder.new("BillboardGui", {
 		Name = "CustomerView",
 		Size = UDim2.fromOffset(150, 86),
-		StudsOffset = Vector3.new(0, 7, 0),
+		StudsOffset = Vector3.new(0, 5.5, 0),
 		MaxDistance = 80,
 		LightInfluence = 0,
 		Adornee = root,
@@ -150,9 +149,12 @@ local function makeCustomerView(model: Model): CustomerView?
 	Builder.label({
 		Size = UDim2.new(1, 0, 0, 20),
 		Font = Theme.fonts.bold,
-		TextColor3 = if model:GetAttribute("Golden") then Theme.colors.gold else rarity.color,
+		TextColor3 = if model:GetAttribute("Golden")
+			then Theme.colors.gold
+			elseif rarity then rarity.color
+			else Theme.colors.text,
 		TextStrokeTransparency = 0.3,
-		Text = species.displayName,
+		Text = if species then (if model:GetAttribute("VIP") then "VIP " else "") .. species.displayName else "",
 		MaxTextSize = 16,
 		Parent = gui,
 	})
@@ -190,8 +192,9 @@ local function updateCustomer(view: CustomerView, now: number)
 	end
 	local ready = readyFor(dish.id)
 	view.order.Text = dish.icon .. (if ready then "✅" else "")
-	if model:GetAttribute("Leaving") then
-		view.gui.Enabled = false
+	-- the order bubble only shows while waiting in line
+	view.gui.Enabled = model:GetAttribute("Queued") == true
+	if not view.gui.Enabled then
 		return
 	end
 	local patienceEnd = model:GetAttribute("PatienceEnd") :: number?

@@ -14,6 +14,7 @@ local BigNum = require(Shared.Util.BigNum)
 local Customers = require(Shared.Config.Customers)
 local Dishes = require(Shared.Config.Dishes)
 local Net = require(Shared.Net)
+local Signal = require(Shared.Util.Signal)
 local Sounds = require(Shared.Config.Sounds)
 
 local Staff = require(Shared.Config.Staff)
@@ -27,6 +28,7 @@ local EffectsController = {}
 local player = Players.LocalPlayer
 local screen: ScreenGui
 local toastList: Frame
+local flyLayer: Frame
 local announceList: Frame
 
 -- Sounds ----------------------------------------------------------------------------
@@ -232,8 +234,68 @@ end
 
 -- World effects ------------------------------------------------------------------------
 
+-- Coins fly from a world position to the HUD cash counter.
+local coinTarget: () -> Vector2? = function()
+	return nil
+end
+
+function EffectsController.setCoinTarget(getter: () -> Vector2?)
+	coinTarget = getter
+end
+
+-- Fires when the coins reach the counter (HUD pops the number).
+EffectsController.coinsArrived = Signal.new() :: Signal.Signal<number>
+
+function EffectsController.coinFly(position: Vector3, amount: number)
+	local camera = workspace.CurrentCamera
+	local target = coinTarget()
+	local screenPoint, onScreen = camera:WorldToViewportPoint(position)
+	EffectsController.play("Cash")
+	if target == nil or not onScreen then
+		EffectsController.coinsArrived:fire(amount)
+		return
+	end
+	-- the coin layer ignores the GUI inset and isn't scaled: raw viewport pixels
+	local start = Vector2.new(screenPoint.X, screenPoint.Y)
+	local count = math.clamp(math.floor(math.log10(amount + 1)) + 4, 4, 12)
+	for i = 1, count do
+		local coin = Builder.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(start.X + math.random(-30, 30), start.Y + math.random(-30, 30)),
+			Size = UDim2.fromOffset(26, 26),
+			BackgroundColor3 = Theme.colors.gold,
+			ZIndex = 40,
+			Parent = flyLayer,
+		}, { Builder.corner(UDim.new(1, 0)), Builder.stroke(Theme.colors.outline, 3) })
+		local delay = (i - 1) * 0.04
+		local flight = 0.45 + math.random() * 0.15
+		task.delay(delay, function()
+			local tween = TweenService:Create(
+				coin,
+				TweenInfo.new(flight, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ Position = UDim2.fromOffset(target.X, target.Y), Size = UDim2.fromOffset(16, 16) }
+			)
+			tween:Play()
+			tween.Completed:Wait()
+			coin:Destroy()
+			if i == count then
+				EffectsController.coinsArrived:fire(amount)
+			end
+		end)
+	end
+end
+
+-- Floating text over a world position ("Served!").
+function EffectsController.textPop(position: Vector3, text: string, color: Color3?, big: boolean?)
+	EffectsController.worldText(position, text, color, big)
+end
+
 -- Floating "+$1.2K" over a world position.
 function EffectsController.coinPop(position: Vector3, amount: number, color: Color3?, big: boolean?)
+	EffectsController.worldText(position, "+" .. BigNum.money(amount), color, big)
+end
+
+function EffectsController.worldText(position: Vector3, message: string, color: Color3?, big: boolean?)
 	local anchor = Instance.new("Attachment")
 	anchor.WorldPosition = position + Vector3.new(0, 4, 0)
 	anchor.Parent = workspace.Terrain
@@ -252,7 +314,7 @@ function EffectsController.coinPop(position: Vector3, amount: number, color: Col
 		TextScaled = true,
 		TextColor3 = color or Theme.colors.gold,
 		TextStrokeTransparency = 0,
-		Text = "+" .. BigNum.money(amount),
+		Text = message,
 		Parent = gui,
 	})
 	local rise = TweenService:Create(
@@ -285,14 +347,17 @@ local function flash(color: Color3)
 end
 
 local function onEffect(kind: string, data: any)
-	if kind == "Coin" then
+	if kind == "Serve" then
 		local big = data.golden or data.multiplier >= 2
 		local color = if data.golden then Theme.colors.gold elseif data.multiplier > 1 then Theme.colors.cyan else nil
-		EffectsController.coinPop(data.position, data.amount, color, big)
-		EffectsController.play(if big then "BigCoin" else "Coin")
+		local text = if data.streak > 1 then string.format("Served! x%.2f", data.multiplier) else "Served!"
+		EffectsController.textPop(data.position, text, color, big)
+		EffectsController.play("Serve")
 		if data.golden then
 			flash(Theme.colors.gold)
 		end
+	elseif kind == "Cash" then
+		EffectsController.coinFly(data.position, data.amount)
 	elseif kind == "Cook" then
 		EffectsController.play("Cook")
 	elseif kind == "Golden" then
@@ -339,6 +404,19 @@ function EffectsController.start()
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 	Scale.attach(screen)
+	local coinScreen = Builder.new("ScreenGui", {
+		Name = "CosmicCafeCoins",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		DisplayOrder = 11,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+	flyLayer = Builder.new("Frame", {
+		Name = "Coins",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Parent = coinScreen,
+	})
 	toastList = Builder.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -110),
