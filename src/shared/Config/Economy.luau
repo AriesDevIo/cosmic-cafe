@@ -6,8 +6,8 @@
 local Economy = {}
 
 Economy.startingMoney = 0
--- Level the first dish of the first world starts at, so the first sale is instant.
-Economy.startingDishLevel = 1
+-- Level dishes start at. 0: you build the station first (the first one is free).
+Economy.startingDishLevel = 0
 
 -- Cost of dish level n (n = levels already owned): baseCost * costGrowth^n.
 -- costGrowth is set per world in Worlds.luau (1.07 early, 1.12-1.15 from world 3).
@@ -37,6 +37,16 @@ Economy.cafe = {
 	customerWalkSpeed = 12, -- studs/second for the walk tween
 	-- Customers are this many times likelier to order a dish that is already cooked.
 	readyOrderBias = 3,
+	-- Customers who get a seat (you own a table) tip this much more.
+	seatedTipMultiplier = 1.2,
+	queueSpacing = 3, -- studs between customers in the counter line
+	queueGap = 3, -- studs between the counter and the first customer
+	eatSecondsMin = 3,
+	eatSecondsMax = 5,
+	-- Waiters / Managers pick up cash stacks this many seconds after they appear.
+	autoCollectDelay = 1.5,
+	cashStackMaxValueParts = 6, -- visual height of a cash stack
+	moveTimeout = 8, -- seconds an NPC may take to reach one waypoint
 	-- Fraction of a world's theoretical rate that keeps running while you are
 	-- in a different world and that world has a Manager (before rarity bonus).
 	managerBaseEfficiency = 0.5,
@@ -95,7 +105,8 @@ Economy.autosaveInterval = 60
 -- Assumptions used ONLY by the pacing simulator (scripts/simulate.luau).
 Economy.sim = {
 	dt = 1, -- seconds per simulation step
-	firstServeSeconds = 8, -- walk to the stall + tap the station + tap the customer
+	firstBuildSeconds = 6, -- walk onto the free Coffee Cart pad
+	firstServeSeconds = 10, -- tap the station, wait for the first customer, serve
 	-- How much of the theoretical rate a human gets while cooking/serving by hand.
 	manualEfficiency = 0.55,
 	-- With a Barista but no Waiter the player only has to serve.

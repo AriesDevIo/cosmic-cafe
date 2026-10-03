@@ -19,6 +19,7 @@ local Economy = Loader.shared("Config/Economy")
 local Franchise = Loader.shared("Config/Franchise")
 local Staff = Loader.shared("Config/Staff")
 local Worlds = Loader.shared("Config/Worlds")
+local Buildables = Loader.shared("Config/Buildables")
 local DataTemplate = Loader.shared("Config/DataTemplate")
 local Progression = Loader.shared("Util/Progression")
 local Stats = Loader.shared("Util/Stats")
@@ -92,13 +93,64 @@ local function hireAction(worldId: string, roleId: string): Action
 	}
 end
 
+-- Generated-lot buildables per world (the sim plays on a generated lot).
+local buildDefs: { [string]: { any } } = {}
+for _, world in Worlds.list do
+	buildDefs[world.id] = (Buildables.forWorld(world.id))
+end
+
+-- Buying `def` together with every missing requirement (structures and decor
+-- only matter to the bot as gates in front of stations and tables).
+local function buildAction(profile: any, worldId: string, def: any): Action
+	local byId = {}
+	for _, other in buildDefs[worldId] do
+		byId[other.id] = other
+	end
+	local chain: { any } = {}
+	local seen: { [string]: boolean } = {}
+	local function collect(current: any)
+		if seen[current.id] or Progression.ownsBuild(profile, worldId, current.id) then
+			return
+		end
+		seen[current.id] = true
+		for _, required in current.requires do
+			collect(byId[required])
+		end
+		table.insert(chain, current)
+	end
+	collect(def)
+	local cost = 0
+	for _, item in chain do
+		cost += item.cost
+	end
+	return {
+		label = def.displayName,
+		kind = "build",
+		cost = cost,
+		apply = function(target)
+			for _, item in chain do
+				Progression.buyBuild(target, worldId, item)
+			end
+		end,
+	}
+end
+
 -- Every purchase the bot might make (excluding world unlocks).
 local function candidateActions(profile: any): { Action }
 	local actions: { Action } = {}
 	for _, world in Worlds.list do
 		if profile.worlds[world.id].unlocked then
 			for _, dishId in world.dishes do
-				table.insert(actions, dishAction(dishId, Stats.upgradeCost(profile, dishId, 1)))
+				if Stats.dishLevel(profile, dishId) > 0 then
+					table.insert(actions, dishAction(dishId, Stats.upgradeCost(profile, dishId, 1)))
+				end
+			end
+			for _, def in buildDefs[world.id] do
+				local useful = def.kind == "Station"
+					or (def.kind == "Table" and not Stats.hasSeating(profile, world.id))
+				if useful and not Progression.ownsBuild(profile, world.id, def.id) then
+					table.insert(actions, buildAction(profile, world.id, def))
+				end
 			end
 			for _, roleId in { "Barista", "Waiter" } do
 				if Stats.assignedStaff(profile, world.id, roleId) == nil then
@@ -145,7 +197,7 @@ function PacingSim.run(options: { seconds: number?, franchiseAt: number? }?): Re
 		events = {},
 		purchaseTimes = {},
 		snapshots = {},
-		firstSale = Dishes.byId[Worlds.list[1].dishes[1]].cookTime + sim.firstServeSeconds,
+		firstSale = sim.firstBuildSeconds + Dishes.byId[Worlds.list[1].dishes[1]].cookTime + sim.firstServeSeconds,
 		firstHire = nil,
 		worldUnlocks = {},
 		franchises = {},
@@ -191,6 +243,9 @@ function PacingSim.run(options: { seconds: number?, franchiseAt: number? }?): Re
 	local function buy(action: Action)
 		action.apply(profile)
 		table.insert(result.purchaseTimes, time)
+		if action.kind == "build" and action.label:find("Table") then
+			log("build", "Built " .. action.label)
+		end
 		if action.kind == "hire" then
 			if result.firstHire == nil then
 				result.firstHire = time
@@ -312,7 +367,7 @@ function PacingSim.run(options: { seconds: number?, franchiseAt: number? }?): Re
 	return result
 end
 
-local GOAL_KINDS = { dish = true, hire = true, world = true, goal = true, milestone = true }
+local GOAL_KINDS = { dish = true, hire = true, world = true, goal = true, milestone = true, build = true }
 
 -- Seconds between goals (new dish, hire, world, milestone, every 10th level)
 -- inside [from, to). Several goals in the same second count once.

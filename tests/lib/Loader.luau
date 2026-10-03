@@ -114,6 +114,7 @@ requireNode = function(node: Node): any
 			Color3 = roblox.Color3,
 			Vector3 = roblox.Vector3,
 			CFrame = roblox.CFrame,
+			Enum = roblox.Enum,
 		},
 	})
 	local result = chunk()

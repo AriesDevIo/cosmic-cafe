@@ -267,7 +267,37 @@ function Stats.goldenChance(profile: Profile): number
 	return Economy.golden.chance * Stats.franchiseEffects(profile).goldenChanceMultiplier
 end
 
--- Expected tip multiplier of a random customer in a world.
+-- Tip of a regular (human) customer.
+function Stats.humanTip(profile: Profile): number
+	return Customers.humanTipMultiplier + Stats.franchiseEffects(profile).tipBonus
+end
+
+-- True once the world has a table, so customers sit down and tip more.
+function Stats.hasSeating(profile: Profile, worldId: string): boolean
+	local builds = profile.builds[worldId]
+	if builds then
+		for _, kind in builds do
+			if kind == "Table" then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+function Stats.seatingMultiplier(profile: Profile, worldId: string): number
+	return if Stats.hasSeating(profile, worldId) then Economy.cafe.seatedTipMultiplier else 1
+end
+
+-- Staff (or the Auto-Serve pass) pick up cash stacks for you.
+function Stats.hasAutoCollect(profile: Profile, worldId: string, ctx: Context): boolean
+	return ctx.autoServePass
+		or Stats.assignedStaff(profile, worldId, "Waiter") ~= nil
+		or Stats.assignedStaff(profile, worldId, "Manager") ~= nil
+end
+
+-- Expected tip multiplier of a random customer in a world: mostly people,
+-- sometimes a VIP alien (species tip), rarely a Golden Alien. Seating applies.
 function Stats.averageTip(profile: Profile, worldId: string): number
 	local world = Worlds.byId[worldId]
 	local totalWeight, totalTip = 0, 0
@@ -277,9 +307,13 @@ function Stats.averageTip(profile: Profile, worldId: string): number
 		totalWeight += weight
 		totalTip += weight * Stats.tipMultiplier(profile, speciesId)
 	end
-	local average = if totalWeight > 0 then totalTip / totalWeight else 1
+	local alienAverage = if totalWeight > 0 then totalTip / totalWeight else Stats.humanTip(profile)
 	local golden = Stats.goldenChance(profile)
-	return average * (1 - golden) + Economy.golden.tipMultiplier * golden
+	local vip = if totalWeight > 0 then Customers.vipAlienChance else 0
+	local average = Stats.humanTip(profile) * (1 - vip - golden)
+		+ alienAverage * vip
+		+ Economy.golden.tipMultiplier * golden
+	return average * Stats.seatingMultiplier(profile, worldId)
 end
 
 -- Rates ----------------------------------------------------------------------------

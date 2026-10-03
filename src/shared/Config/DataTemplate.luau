@@ -8,7 +8,8 @@ local Types = require(script.Parent.Parent.Types)
 
 local DataTemplate = {}
 
-DataTemplate.version = 1
+-- 1: original release. 2: tycoon builds + tutorial.
+DataTemplate.version = 2
 
 -- DataStore settings (used by DataService).
 DataTemplate.store = {
@@ -40,6 +41,10 @@ function DataTemplate.new(): Types.Profile
 	end
 	local firstWorld = Worlds.byId[Worlds.first]
 	worlds[firstWorld.id].dishes[firstWorld.dishes[1]] = Economy.startingDishLevel
+	local builds: { [string]: { [string]: string } } = {}
+	for _, world in Worlds.list do
+		builds[world.id] = {}
+	end
 
 	return {
 		version = DataTemplate.version,
@@ -52,6 +57,11 @@ function DataTemplate.new(): Types.Profile
 		franchiseNodes = {},
 		currentWorld = firstWorld.id,
 		worlds = worlds,
+		builds = builds,
+		tutorial = {
+			step = 1,
+			done = false,
+		},
 		staff = {
 			nextId = 1,
 			items = {},
@@ -76,8 +86,22 @@ function DataTemplate.new(): Types.Profile
 			goldenServed = 0,
 			playSeconds = 0,
 			bestStreak = 0,
+			cashCollected = 0,
 		},
 	}
+end
+
+-- Version upgrades that need more than filling in new fields. Runs BEFORE
+-- reconcile on raw saved data.
+function DataTemplate.migrate(data: { [string]: any })
+	local version = data.version or 1
+	if version < 2 then
+		-- Players from before the tycoon redesign already know how to play.
+		local stats = data.stats
+		if type(stats) == "table" and type(stats.served) == "number" and stats.served > 0 then
+			data.tutorial = { step = 1, done = true }
+		end
+	end
 end
 
 return DataTemplate

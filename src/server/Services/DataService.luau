@@ -128,6 +128,7 @@ end
 -- Upgrades old saves. Bump DataTemplate.version and add a step here when a
 -- field is renamed or its meaning changes (new fields need nothing: reconcile).
 local function migrate(data: any): Profile
+	DataTemplate.migrate(data)
 	TableUtil.reconcile(data, DataTemplate.new() :: any)
 	data.version = DataTemplate.version
 	return data :: Profile

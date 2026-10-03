@@ -6,6 +6,7 @@
 export type Dish = {
 	id: string,
 	displayName: string,
+	stationName: string?, -- name of the buildable that cooks it ("Coffee Cart")
 	icon: string,
 	world: string,
 	baseCost: number,
@@ -55,6 +56,7 @@ local list: { Dish } = {
 	{
 		id = "Coffee",
 		displayName = "Coffee",
+		stationName = "Coffee Cart",
 		icon = "☕",
 		world = "StreetStall",
 		baseCost = 6,
@@ -65,6 +67,7 @@ local list: { Dish } = {
 	{
 		id = "Donut",
 		displayName = "Donut",
+		stationName = "Donut Machine",
 		icon = "🍩",
 		world = "StreetStall",
 		baseCost = 90,
@@ -75,6 +78,7 @@ local list: { Dish } = {
 	{
 		id = "HotDog",
 		displayName = "Hot Dog",
+		stationName = "Hot Dog Grill",
 		icon = "🌭",
 		world = "StreetStall",
 		baseCost = 1350,
@@ -85,6 +89,7 @@ local list: { Dish } = {
 	{
 		id = "Pancakes",
 		displayName = "Pancakes",
+		stationName = "Pancake Griddle",
 		icon = "🥞",
 		world = "StreetStall",
 		baseCost = 20000,
@@ -95,6 +100,7 @@ local list: { Dish } = {
 	{
 		id = "Burger",
 		displayName = "Burger",
+		stationName = "Burger Grill",
 		icon = "🍔",
 		world = "StreetStall",
 		baseCost = 300000,
@@ -107,6 +113,7 @@ local list: { Dish } = {
 	{
 		id = "HotCocoa",
 		displayName = "Hot Cocoa",
+		stationName = "Cocoa Cauldron",
 		icon = "🍫",
 		world = "CloudCity",
 		baseCost = 1.2e6,
@@ -117,6 +124,7 @@ local list: { Dish } = {
 	{
 		id = "BerrySmoothie",
 		displayName = "Berry Smoothie",
+		stationName = "Smoothie Blender",
 		icon = "🥤",
 		world = "CloudCity",
 		baseCost = 1.8e7,
@@ -127,6 +135,7 @@ local list: { Dish } = {
 	{
 		id = "CloudTea",
 		displayName = "Cloud Tea",
+		stationName = "Cloud Tea Kettle",
 		icon = "🍵",
 		world = "CloudCity",
 		baseCost = 2.72e8,
@@ -137,6 +146,7 @@ local list: { Dish } = {
 	{
 		id = "RainbowSundae",
 		displayName = "Rainbow Sundae",
+		stationName = "Sundae Bar",
 		icon = "🍨",
 		world = "CloudCity",
 		baseCost = 4e9,
@@ -147,6 +157,7 @@ local list: { Dish } = {
 	{
 		id = "StormSoup",
 		displayName = "Storm Soup",
+		stationName = "Storm Soup Pot",
 		icon = "🍲",
 		world = "CloudCity",
 		baseCost = 6.08e10,

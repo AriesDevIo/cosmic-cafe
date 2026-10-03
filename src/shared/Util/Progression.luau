@@ -5,6 +5,7 @@
 -- Randomness is injected (rolls in [0, 1)) to keep everything testable.
 
 local Config = script.Parent.Parent.Config
+local Buildables = require(Config.Buildables)
 local DataTemplate = require(Config.DataTemplate)
 local Dishes = require(Config.Dishes)
 local Economy = require(Config.Economy)
@@ -45,11 +46,21 @@ end
 -- Dishes & worlds --------------------------------------------------------------------
 
 -- amount: levels to buy, or 0 for "as many as affordable".
+-- Level 0 -> 1 normally happens by building the dish's station; plots
+-- without buildables pass allowUnlock to buy it here instead.
 -- Returns (ok, error, levelsBought, cost).
-function Progression.buyDish(profile: Profile, dishId: string, amount: number): (boolean, string?, number, number)
+function Progression.buyDish(
+	profile: Profile,
+	dishId: string,
+	amount: number,
+	allowUnlock: boolean?
+): (boolean, string?, number, number)
 	local dish = Dishes.byId[dishId]
 	if dish == nil then
 		return false, "Unknown dish", 0, 0
+	end
+	if Stats.dishLevel(profile, dishId) == 0 and not allowUnlock then
+		return false, "Build its station first", 0, 0
 	end
 	local save = profile.worlds[dish.world]
 	if save == nil or not save.unlocked then
@@ -306,6 +317,7 @@ function Progression.franchise(profile: Profile): (boolean, string?, number)
 
 	local fresh = DataTemplate.new()
 	profile.worlds = fresh.worlds
+	profile.builds = fresh.builds
 	profile.currentWorld = fresh.currentWorld
 	profile.runEarnings = 0
 	profile.money = fresh.money
@@ -363,6 +375,107 @@ function Progression.claimDaily(profile: Profile, ctx: Context, now: number): (b
 	return true, nil, reward, streak
 end
 
+-- Builds (tycoon buildables) --------------------------------------------------------------------
+
+type BuildDef = Buildables.BuildDef
+
+function Progression.ownsBuild(profile: Profile, worldId: string, buildId: string): boolean
+	local builds = profile.builds[worldId]
+	return builds ~= nil and builds[buildId] ~= nil
+end
+
+-- Not owned yet and every requirement is owned.
+function Progression.canBuild(profile: Profile, worldId: string, def: BuildDef): boolean
+	if Progression.ownsBuild(profile, worldId, def.id) then
+		return false
+	end
+	for _, required in def.requires do
+		if not Progression.ownsBuild(profile, worldId, required) then
+			return false
+		end
+	end
+	return true
+end
+
+local function grant(profile: Profile, worldId: string, def: BuildDef)
+	profile.builds[worldId] = profile.builds[worldId] or {}
+	profile.builds[worldId][def.id] = def.kind
+	if def.kind == "Station" and def.dish and Dishes.byId[def.dish] then
+		local save = profile.worlds[worldId]
+		save.dishes[def.dish] = math.max(save.dishes[def.dish] or 0, 1)
+	end
+end
+
+function Progression.buyBuild(profile: Profile, worldId: string, def: BuildDef): (boolean, string?)
+	local save = profile.worlds[worldId]
+	if save == nil or not save.unlocked then
+		return false, "World locked"
+	end
+	if Progression.ownsBuild(profile, worldId, def.id) then
+		return false, "Already built"
+	end
+	if not Progression.canBuild(profile, worldId, def) then
+		return false, "Build the earlier items first"
+	end
+	if not Progression.trySpend(profile, def.cost) then
+		return false, "Not enough money"
+	end
+	grant(profile, worldId, def)
+	return true, nil
+end
+
+-- Buildables that can be bought now, cheapest first (ties: Order), at most `limit`.
+function Progression.availableBuilds(profile: Profile, worldId: string, defs: { BuildDef }, limit: number): { BuildDef }
+	local list = {}
+	for _, def in defs do
+		if Progression.canBuild(profile, worldId, def) then
+			table.insert(list, def)
+		end
+	end
+	table.sort(list, function(a, b)
+		if a.cost ~= b.cost then
+			return a.cost < b.cost
+		end
+		return a.order < b.order
+	end)
+	while #list > limit do
+		table.remove(list)
+	end
+	return list
+end
+
+-- Keeps builds and dish levels consistent: a station whose dish already has
+-- levels (old saves, Head Start) is owned for free, with its requirements.
+-- Returns true if anything was granted.
+function Progression.reconcileBuilds(profile: Profile, worldId: string, defs: { BuildDef }): boolean
+	local byId: { [string]: BuildDef } = {}
+	for _, def in defs do
+		byId[def.id] = def
+	end
+	local changed = false
+	local function own(def: BuildDef, depth: number)
+		if depth > #defs then
+			return -- cyclic Requires in the map: stop
+		end
+		for _, required in def.requires do
+			local requiredDef = byId[required]
+			if requiredDef then
+				own(requiredDef, depth + 1)
+			end
+		end
+		if not Progression.ownsBuild(profile, worldId, def.id) then
+			grant(profile, worldId, def)
+			changed = true
+		end
+	end
+	for _, def in defs do
+		if def.kind == "Station" and def.dish and Stats.dishLevel(profile, def.dish) > 0 then
+			own(def, 0)
+		end
+	end
+	return changed
+end
+
 -- Auto-Buy ---------------------------------------------------------------------------------------
 
 -- The single-level dish upgrade in `worldId` with the best payback
@@ -375,7 +488,7 @@ function Progression.bestUpgrade(profile: Profile, ctx: Context, worldId: string
 	local save = profile.worlds[worldId]
 	for _, dishId in world.dishes do
 		local cost = Stats.upgradeCost(profile, dishId, 1)
-		if cost <= profile.money then
+		if cost <= profile.money and save.dishes[dishId] > 0 then
 			local level = save.dishes[dishId]
 			save.dishes[dishId] = level + 1
 			local gained = Stats.worldRate(profile, ctx, worldId) - baseRate

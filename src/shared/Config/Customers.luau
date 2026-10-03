@@ -31,6 +31,11 @@ Customers.rarities = {
 	Mythic = { id = "Mythic", weight = 0, color = Color3.fromRGB(255, 230, 80), announce = true },
 } :: { [string]: Rarity }
 
+-- Regular customers are people (R15 avatars, Config/Outfits). Aliens are rare
+-- "VIP Alien" visitors that tip by species and fill the Codex.
+Customers.humanTipMultiplier = 1.0
+Customers.vipAlienChance = 0.05
+
 Customers.goldenId = "GoldenAlien"
 Customers.criticId = "FoodCritic"
 

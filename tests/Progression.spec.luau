@@ -10,21 +10,112 @@ local Worlds = Loader.shared("Config/Worlds")
 local Progression = Loader.shared("Util/Progression")
 local Stats = Loader.shared("Util/Stats")
 
-local ctx = Stats.defaultContext
+local Buildables = Loader.shared("Config/Buildables")
 
+local ctx = Stats.defaultContext
+local streetDefs = Buildables.forWorld("StreetStall")
+
+local function defOf(defs: { any }, id: string): any
+	for _, def in defs do
+		if def.id == id then
+			return def
+		end
+	end
+	error("no build " .. id)
+end
+
+-- A profile with the free Coffee Cart built (and lots of money).
 local function rich(money: number?)
 	local profile = DataTemplate.new()
+	profile.money = 0
+	assert(Progression.buyBuild(profile, "StreetStall", defOf(streetDefs, "Station1")))
 	profile.money = money or 1e30
 	return profile
 end
 
 describe("new profile", function()
-	it("starts with the first dish so the first sale is instant", function()
+	it("starts on an empty lot with a free first station", function()
 		local profile = DataTemplate.new()
 		expect(profile.worlds.StreetStall.unlocked).toBe(true)
 		expect(profile.worlds.CloudCity.unlocked).toBe(false)
-		expect(Stats.dishLevel(profile, "Coffee")).toBe(Economy.startingDishLevel)
+		expect(Stats.dishLevel(profile, "Coffee")).toBe(0)
+		expect(Stats.worldRate(profile, ctx, "StreetStall")).toBe(0)
+		expect(profile.tutorial.step).toBe(1)
+		local first = Progression.availableBuilds(profile, "StreetStall", streetDefs, 3)
+		expect(#first).toBe(1)
+		expect(first[1].cost).toBe(0)
+		expect(first[1].dish).toBe("Coffee")
+	end)
+end)
+
+describe("builds", function()
+	it("buys a station, unlocking its dish", function()
+		local profile = rich(100)
+		expect(Stats.dishLevel(profile, "Coffee")).toBe(1)
 		expect(Stats.worldRate(profile, ctx, "StreetStall")).toBeGreaterThan(0)
+		local donut = defOf(streetDefs, "Station2")
+		expect(Progression.buyBuild(profile, "StreetStall", donut)).toBe(true)
+		expect(profile.money).toBe(100 - donut.cost)
+		expect(Stats.dishLevel(profile, "Donut")).toBe(1)
+		expect(profile.builds.StreetStall.Station2).toBe("Station")
+	end)
+
+	it("enforces requirements, money and duplicates", function()
+		local profile = rich(10)
+		expect((Progression.buyBuild(profile, "StreetStall", defOf(streetDefs, "Counter")))).toBe(false)
+		expect((Progression.buyBuild(profile, "StreetStall", defOf(streetDefs, "Table1")))).toBe(false) -- $15
+		profile.money = 1000
+		expect(Progression.buyBuild(profile, "StreetStall", defOf(streetDefs, "Table1"))).toBe(true)
+		expect((Progression.buyBuild(profile, "StreetStall", defOf(streetDefs, "Table1")))).toBe(false)
+		expect((Progression.buyBuild(profile, "CloudCity", Buildables.forWorld("CloudCity")[1]))).toBe(false)
+	end)
+
+	it("lists at most N available builds, cheapest first", function()
+		local profile = rich()
+		local list = Progression.availableBuilds(profile, "StreetStall", streetDefs, 3)
+		expect(#list).toBe(2) -- Table1 ($15) and Station2 (Donut)
+		expect(list[1].id).toBe("Table1")
+		for _, def in streetDefs do
+			Progression.buyBuild(profile, "StreetStall", def)
+		end
+		expect(#Progression.availableBuilds(profile, "StreetStall", streetDefs, 3)).toBe(0)
+	end)
+
+	it("seats customers once a table is built", function()
+		local profile = rich()
+		local before = Stats.averageTip(profile, "StreetStall")
+		Progression.buyBuild(profile, "StreetStall", defOf(streetDefs, "Table1"))
+		expect(Stats.averageTip(profile, "StreetStall")).toBeCloseTo(before * Economy.cafe.seatedTipMultiplier)
+	end)
+
+	it("reconciles stations for dishes that already have levels", function()
+		local profile = DataTemplate.new()
+		profile.worlds.StreetStall.dishes.Donut = 5
+		expect(Progression.reconcileBuilds(profile, "StreetStall", streetDefs)).toBe(true)
+		expect(Progression.ownsBuild(profile, "StreetStall", "Station2")).toBe(true)
+		expect(Progression.ownsBuild(profile, "StreetStall", "Station1")).toBe(true) -- requirement
+		expect(Progression.reconcileBuilds(profile, "StreetStall", streetDefs)).toBe(false)
+	end)
+
+	it("generates a lot for every world with a free first station", function()
+		for _, world in Worlds.list do
+			local defs = Buildables.forWorld(world.id)
+			local stations = 0
+			for _, def in defs do
+				if def.kind == "Station" then
+					stations += 1
+					expect(def.dish ~= nil).toBeTruthy()
+				end
+			end
+			expect(stations).toBe(#world.dishes)
+			expect(defs[1].cost).toBe(0)
+		end
+	end)
+
+	it("parses Requires attributes", function()
+		expect(Buildables.parseRequires("A, B,C")).toEqual({ "A", "B", "C" })
+		expect(Buildables.parseRequires("")).toEqual({})
+		expect(Buildables.parseRequires(nil)).toEqual({})
 	end)
 end)
 
@@ -38,6 +129,12 @@ describe("buying dishes", function()
 		expect(paid).toBeCloseTo(cost)
 		expect(profile.money).toBeCloseTo(1000 - cost)
 		expect(Stats.dishLevel(profile, "Coffee")).toBe(6)
+	end)
+
+	it("needs the station built unless the plot allows unlocking", function()
+		local profile = rich(1e6)
+		expect((Progression.buyDish(profile, "Donut", 1))).toBe(false)
+		expect(Progression.buyDish(profile, "Donut", 1, true)).toBe(true)
 	end)
 
 	it("buys max with amount 0", function()
@@ -65,11 +162,11 @@ describe("buying dishes", function()
 end)
 
 describe("worlds", function()
-	it("unlocks in order and gives the first dish", function()
+	it("unlocks in order with an empty lot", function()
 		local profile = rich()
 		expect((Progression.unlockWorld(profile, "Underwater"))).toBe(false) -- stub
 		expect(Progression.unlockWorld(profile, "CloudCity")).toBe(true)
-		expect(Stats.dishLevel(profile, "HotCocoa")).toBe(1)
+		expect(Stats.dishLevel(profile, "HotCocoa")).toBe(0)
 		expect((Progression.unlockWorld(profile, "CloudCity"))).toBe(false)
 		expect(Progression.travel(profile, "CloudCity")).toBe(true)
 		expect(profile.currentWorld).toBe("CloudCity")
@@ -152,6 +249,7 @@ describe("background and offline", function()
 	it("needs automation and a Manager to earn in the background", function()
 		local profile = rich()
 		Progression.unlockWorld(profile, "CloudCity")
+		Progression.buyBuild(profile, "CloudCity", Buildables.forWorld("CloudCity")[1])
 		Progression.hire(profile, "StreetStall", "Barista")
 		Progression.hire(profile, "StreetStall", "Waiter")
 		Progression.travel(profile, "CloudCity")
@@ -164,6 +262,7 @@ describe("background and offline", function()
 	it("counts only the current world offline unless a Director is hired", function()
 		local profile = rich()
 		Progression.unlockWorld(profile, "CloudCity")
+		Progression.buyBuild(profile, "CloudCity", Buildables.forWorld("CloudCity")[1])
 		for _, world in { "StreetStall", "CloudCity" } do
 			Progression.hire(profile, world, "Barista")
 			Progression.hire(profile, world, "Waiter")
@@ -240,7 +339,8 @@ describe("franchise", function()
 		expect(profile.totalStarChefs).toBe(10)
 		expect(profile.money).toBe(0)
 		expect(profile.worlds.CloudCity.unlocked).toBe(false)
-		expect(Stats.dishLevel(profile, "Coffee")).toBe(1)
+		expect(Stats.dishLevel(profile, "Coffee")).toBe(0)
+		expect(next(profile.builds.StreetStall)).toBeNil()
 		expect(profile.codex.species.Blorb).toBe(1)
 		expect(profile.codex.recipes.Latte).toBe(true)
 		expect(Stats.hasAutoCook(profile, "StreetStall")).toBe(true)
@@ -307,5 +407,16 @@ describe("auto-buy", function()
 		expect(cost).toBeLessThanOrEqual(100)
 		local broke = rich(0)
 		expect((Progression.bestUpgrade(broke, ctx, "StreetStall"))).toBeNil()
+	end)
+end)
+
+describe("save migration", function()
+	it("skips the tutorial for players from before the redesign", function()
+		local veteran: any = { version = 1, stats = { served = 40 } }
+		DataTemplate.migrate(veteran)
+		expect(veteran.tutorial.done).toBe(true)
+		local fresh: any = { version = 1, stats = { served = 0 } }
+		DataTemplate.migrate(fresh)
+		expect(fresh.tutorial).toBeNil()
 	end)
 end)

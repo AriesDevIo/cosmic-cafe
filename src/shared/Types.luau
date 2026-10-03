@@ -28,6 +28,12 @@ export type Profile = {
 	franchiseNodes: { [string]: boolean },
 	currentWorld: string,
 	worlds: { [string]: WorldSave },
+	-- Tycoon buildables owned this run: worldId -> buildId -> kind ("Station", "Table"...)
+	builds: { [string]: { [string]: string } },
+	tutorial: {
+		step: number, -- index into Config/Tutorial.steps
+		done: boolean,
+	},
 	staff: {
 		nextId: number,
 		items: { [string]: StaffItem },
@@ -52,6 +58,7 @@ export type Profile = {
 		goldenServed: number,
 		playSeconds: number,
 		bestStreak: number,
+		cashCollected: number, -- cash stacks picked up (by hand or by staff)
 	},
 }
 
