@@ -14,6 +14,7 @@ local order = {
 	"WorldsController",
 	"CodexController",
 	"DailyController",
+	"FranchiseController",
 	"WorldObjectsController",
 	-- StateController last: it fires Ready, so every listener must be connected.
 	"StateController",

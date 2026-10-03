@@ -22,6 +22,7 @@ export type Popup = {
 	highlight: string?, -- big golden line (e.g. "+$1.2M")
 	button: string,
 	onClose: (() -> ())?,
+	cancel: string?, -- optional second button that just closes
 }
 
 local queue: { Popup } = {}
@@ -78,23 +79,40 @@ local function showNext()
 		MaxTextSize = 19,
 		Parent = panel,
 	})
+	local function close(confirmed: boolean)
+		EffectsController.play("Click")
+		dim:Destroy()
+		showing = false
+		if confirmed and popup.onClose then
+			popup.onClose()
+		end
+		showNext()
+	end
+	local twoButtons = popup.cancel ~= nil
 	Builder.button({
 		Text = popup.button,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -16),
-		Size = UDim2.fromOffset(200, 48),
+		Position = UDim2.new(if twoButtons then 0.72 else 0.5, 0, 1, -16),
+		Size = UDim2.fromOffset(if twoButtons then 170 else 200, 48),
 		BackgroundColor3 = Theme.colors.good,
 		MaxTextSize = 24,
 		Parent = panel,
 	}, function()
-		EffectsController.play("Click")
-		dim:Destroy()
-		showing = false
-		if popup.onClose then
-			popup.onClose()
-		end
-		showNext()
+		close(true)
 	end)
+	if twoButtons then
+		Builder.button({
+			Text = popup.cancel,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.28, 0, 1, -16),
+			Size = UDim2.fromOffset(170, 48),
+			BackgroundColor3 = Theme.colors.locked,
+			MaxTextSize = 24,
+			Parent = panel,
+		}, function()
+			close(false)
+		end)
+	end
 	EffectsController.play("Unlock")
 	TweenService:Create(panel:FindFirstChild("Scale") :: UIScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
 		Scale = 1,
