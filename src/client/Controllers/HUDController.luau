@@ -14,6 +14,7 @@ local Stats = require(Shared.Util.Stats)
 local Worlds = require(Shared.Config.Worlds)
 
 local Builder = require(script.Parent.Parent.UI.Builder)
+local Scale = require(script.Parent.Parent.UI.Scale)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Window = require(script.Parent.Parent.UI.Window)
 local EffectsController = require(script.Parent.EffectsController)
@@ -45,6 +46,7 @@ local streakFrame: Frame
 local streakFill: Frame
 local streakLabel: TextLabel
 local weatherLabel: TextLabel
+local hintLabel: TextLabel
 local badges: { [string]: TextLabel } = {}
 
 -- Red dot on a menu button (e.g. daily reward ready).
@@ -62,6 +64,7 @@ local function build()
 		DisplayOrder = 1,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
+	Scale.attach(screen)
 
 	-- Money panel (top center)
 	local top = Builder.new("Frame", {
@@ -147,6 +150,23 @@ local function build()
 		ZIndex = 2,
 		Parent = streakBar,
 	})
+
+	-- First-time hint (until the first serve)
+	hintLabel = Builder.label({
+		Name = "Hint",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -40),
+		Size = UDim2.fromOffset(520, 44),
+		BackgroundTransparency = 0.1,
+		BackgroundColor3 = Theme.colors.accentDark,
+		Font = Theme.fonts.bold,
+		Text = "👉 Walk to the ☕ station and tap Cook, then tap a customer to Serve!",
+		TextWrapped = true,
+		Visible = false,
+		MaxTextSize = 18,
+		Parent = screen,
+	})
+	Builder.corner().Parent = hintLabel
 
 	-- Weather banner (top right)
 	weatherLabel = Builder.label({
@@ -304,9 +324,10 @@ end
 
 function HUDController.start()
 	build()
-	StateController.changed:connect(function()
+	StateController.changed:connect(function(profile)
 		refreshIncome()
 		refreshUnlock()
+		hintLabel.Visible = profile.stats.served == 0
 	end)
 	StateController.moneyChanged:connect(refreshMoney)
 	StateController.runtimeChanged:connect(function()

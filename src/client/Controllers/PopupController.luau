@@ -11,6 +11,7 @@ local BigNum = require(Shared.Util.BigNum)
 local Net = require(Shared.Net)
 
 local Builder = require(script.Parent.Parent.UI.Builder)
+local Scale = require(script.Parent.Parent.UI.Scale)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local EffectsController = require(script.Parent.EffectsController)
 
@@ -131,6 +132,7 @@ function PopupController.start()
 		DisplayOrder = 20,
 		Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
 	})
+	Scale.attach(screen)
 
 	Net.event("WelcomeBack").OnClientEvent:Connect(function(earned, away, counted, cap)
 		local body

@@ -16,7 +16,10 @@ local Dishes = require(Shared.Config.Dishes)
 local Net = require(Shared.Net)
 local Sounds = require(Shared.Config.Sounds)
 
+local Staff = require(Shared.Config.Staff)
+
 local Builder = require(script.Parent.Parent.UI.Builder)
+local Scale = require(script.Parent.Parent.UI.Scale)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
 local EffectsController = {}
@@ -272,6 +275,14 @@ local function onEffect(kind: string, data: any)
 		EffectsController.play("Unlock")
 	elseif kind == "RecipeFail" then
 		EffectsController.play("Error")
+	elseif kind == "Crate" or kind == "Fuse" then
+		local role = Staff.roles[data.role]
+		local rarity = Staff.rarities[data.rarity]
+		if role and rarity then
+			local title = role.icon .. " " .. data.rarity .. " " .. role.displayName
+			local subtitle = if kind == "Fuse" then "Fused 3 into 1!" else "Fresh out of the crate!"
+			EffectsController.card(title, subtitle, rarity.color)
+		end
 	end
 end
 
@@ -302,6 +313,7 @@ function EffectsController.start()
 		DisplayOrder = 10,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
+	Scale.attach(screen)
 	toastList = Builder.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -110),

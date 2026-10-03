@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Signal = require(ReplicatedStorage:WaitForChild("Shared").Util.Signal)
 local Builder = require(script.Parent.Builder)
+local Scale = require(script.Parent.Scale)
 local Theme = require(script.Parent.Theme)
 
 export type Window = {
@@ -37,6 +38,7 @@ local function getScreen(): ScreenGui
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 			Parent = player:WaitForChild("PlayerGui"),
 		})
+		Scale.attach(screen :: ScreenGui)
 	end
 	return screen :: ScreenGui
 end

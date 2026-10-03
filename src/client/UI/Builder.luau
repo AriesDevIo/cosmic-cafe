@@ -2,6 +2,8 @@
 -- Tiny declarative helpers for building UI in code.
 --   Builder.new("Frame", { Size = ..., Parent = ... }, { children })
 
+local TweenService = game:GetService("TweenService")
+
 local Theme = require(script.Parent.Theme)
 
 local Builder = {}
@@ -93,6 +95,17 @@ function Builder.button(props: { [string]: any }, onClick: () -> ()): TextButton
 		Builder.new("UITextSizeConstraint", { MaxTextSize = props.MaxTextSize or 22 }),
 		Builder.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }),
 	})
+	local bounce = Instance.new("UIScale")
+	bounce.Parent = button
+	button.MouseButton1Down:Connect(function()
+		TweenService:Create(bounce, TweenInfo.new(0.06), { Scale = 0.94 }):Play()
+	end)
+	button.MouseButton1Up:Connect(function()
+		TweenService:Create(bounce, TweenInfo.new(0.12, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		bounce.Scale = 1
+	end)
 	button.Activated:Connect(onClick)
 	return button
 end
