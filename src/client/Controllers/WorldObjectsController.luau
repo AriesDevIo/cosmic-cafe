@@ -316,13 +316,9 @@ end
 -- Loop -----------------------------------------------------------------------------------------
 
 local function scan()
-	for _, tagged in CollectionService:GetTagged(Map.tags.Station) do
-		-- Stations may be parts or models; the server writes state on the part.
-		local part: Instance? = tagged
-		if tagged:IsA("Model") then
-			part = tagged.PrimaryPart or tagged:FindFirstChildWhichIsA("BasePart", true)
-		end
-		if part and part:IsA("BasePart") and isMine(part) and stationViews[part] == nil then
+	-- The server tags the state part of every station in use (map or built).
+	for _, part in CollectionService:GetTagged(Map.tags.ActiveStation) do
+		if part:IsA("BasePart") and isMine(part) and stationViews[part] == nil then
 			stationViews[part] = makeStationView(part)
 		end
 	end

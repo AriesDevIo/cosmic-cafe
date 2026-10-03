@@ -205,6 +205,31 @@ function EffectsController.card(title: string, subtitle: string, color: Color3)
 	end)
 end
 
+-- Screen confetti (tutorial complete, big moments).
+function EffectsController.confetti()
+	local colors = { Theme.colors.accent, Theme.colors.cyan, Theme.colors.pink, Theme.colors.good, Theme.colors.star }
+	for i = 1, 90 do
+		local piece = Builder.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(math.random(), 0, -0.05, -math.random(0, 200)),
+			Size = UDim2.fromOffset(math.random(8, 14), math.random(12, 20)),
+			Rotation = math.random(0, 360),
+			BackgroundColor3 = colors[(i % #colors) + 1],
+			BorderSizePixel = 0,
+			ZIndex = 60,
+			Parent = screen,
+		})
+		local duration = 1.8 + math.random() * 1.4
+		TweenService:Create(piece, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.fromScale(piece.Position.X.Scale + (math.random() - 0.5) * 0.2, 1.1),
+			Rotation = piece.Rotation + math.random(-540, 540),
+		}):Play()
+		task.delay(duration, function()
+			piece:Destroy()
+		end)
+	end
+end
+
 -- World effects ------------------------------------------------------------------------
 
 -- Floating "+$1.2K" over a world position.

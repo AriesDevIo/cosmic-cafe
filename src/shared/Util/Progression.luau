@@ -295,11 +295,15 @@ end
 
 -- Codex ------------------------------------------------------------------------------------
 
--- Records a served species; returns true on the first ever serve.
+-- Counts any served customer (people and aliens).
+function Progression.countServe(profile: Profile)
+	profile.stats.served += 1
+end
+
+-- Records a served alien species in the Codex; returns true on the first ever serve.
 function Progression.recordServe(profile: Profile, speciesId: string): boolean
 	local count = profile.codex.species[speciesId] or 0
 	profile.codex.species[speciesId] = count + 1
-	profile.stats.served += 1
 	return count == 0
 end
 

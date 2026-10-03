@@ -68,13 +68,35 @@ function Builder.label(props: { [string]: any }): TextLabel
 		Text = "",
 	}
 	for key, value in props do
-		if key ~= "MaxTextSize" then -- belongs to the UITextSizeConstraint below
+		if key ~= "MaxTextSize" and key ~= "Outlined" then -- not TextLabel properties
 			defaults[key] = value
 		end
 	end
 	local label = Builder.new("TextLabel", defaults)
+	if props.Outlined then
+		Builder.textStroke().Parent = label
+	end
 	Builder.new("UITextSizeConstraint", { MaxTextSize = props.MaxTextSize or 28, Parent = label })
 	return label
+end
+
+-- Thick dark outline around text (cartoon style).
+function Builder.textStroke(thickness: number?): Instance
+	return Builder.new("UIStroke", {
+		Color = Theme.colors.outline,
+		Thickness = thickness or 3,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+		LineJoinMode = Enum.LineJoinMode.Round,
+	})
+end
+
+-- Vertical shading for a colored frame: full color at the top, ~25% darker at
+-- the bottom (UIGradient multiplies the background color).
+function Builder.gradient(): Instance
+	return Builder.new("UIGradient", {
+		Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190)),
+		Rotation = 90,
+	})
 end
 
 -- A rounded button. `onClick` runs on Activated.

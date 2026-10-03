@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BigNum = require(Shared.Util.BigNum)
 local Economy = require(Shared.Config.Economy)
 local Stats = require(Shared.Util.Stats)
+local Tutorial = require(Shared.Util.Tutorial)
 local Worlds = require(Shared.Config.Worlds)
 
 local Builder = require(script.Parent.Parent.UI.Builder)
@@ -48,6 +49,9 @@ local streakLabel: TextLabel
 local weatherLabel: TextLabel
 local hintLabel: TextLabel
 local badges: { [string]: TextLabel } = {}
+local menuButtons: { [string]: TextButton } = {}
+local menuShown: { [string]: boolean } = {}
+local pulses: { [string]: true } = {}
 
 -- Red dot on a menu button (e.g. daily reward ready).
 function HUDController.setBadge(id: string, visible: boolean)
@@ -235,6 +239,53 @@ local function build()
 		})
 		Builder.corner(UDim.new(1, 0)).Parent = badge
 		badges[entry.id] = badge
+		button.Visible = false
+		menuButtons[entry.id] = button
+		Builder.new("UIStroke", {
+			Name = "Pulse",
+			Color = Theme.colors.accent,
+			Thickness = 0,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Parent = button,
+		})
+	end
+end
+
+-- Menu buttons appear one by one as the tutorial unlocks them.
+local function refreshMenus()
+	local profile = StateController.get()
+	if profile == nil then
+		return
+	end
+	for id, button in menuButtons do
+		local visible = Tutorial.menuVisible(profile, id)
+		if visible and not menuShown[id] then
+			menuShown[id] = true
+			button.Visible = true
+			local pop = button:FindFirstChildOfClass("UIScale")
+			if pop then
+				pop.Scale = 0
+				TweenService:Create(pop, TweenInfo.new(0.45, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+			end
+			EffectsController.play("Unlock")
+		elseif not visible then
+			menuShown[id] = false
+			button.Visible = false
+		end
+	end
+end
+
+-- Pulsing outline on a menu button (tutorial pointing at it).
+function HUDController.pulse(id: string, on: boolean)
+	if on then
+		pulses[id] = true
+	else
+		pulses[id] = nil
+	end
+	local button = menuButtons[id]
+	local stroke = if button then button:FindFirstChild("Pulse") :: UIStroke? else nil
+	if stroke and not on then
+		stroke.Thickness = 0
 	end
 end
 
@@ -324,6 +375,16 @@ end
 
 function HUDController.start()
 	build()
+	StateController.changed:connect(refreshMenus)
+	RunService.RenderStepped:Connect(function()
+		local wave = (math.sin(os.clock() * 6) + 1) / 2
+		for id in pulses do
+			local stroke = menuButtons[id] and menuButtons[id]:FindFirstChild("Pulse") :: UIStroke?
+			if stroke then
+				stroke.Thickness = 3 + wave * 4
+			end
+		end
+	end)
 	StateController.changed:connect(function(profile)
 		refreshIncome()
 		refreshUnlock()

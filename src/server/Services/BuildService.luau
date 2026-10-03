@@ -248,6 +248,7 @@ local function makePad(entry: PlotBuilds, info: BuildInfo, owner: Player): BaseP
 	pad:SetAttribute("DisplayName", info.def.displayName)
 	pad:SetAttribute("Cost", info.def.cost)
 	pad:SetAttribute("Kind", info.def.kind)
+	pad:SetAttribute("Dish", info.def.dish)
 	pad:SetAttribute(Map.attributes.Owner, owner.UserId)
 	pad.Parent = padFolder
 	CollectionService:AddTag(pad, Map.tags.BuyPad)

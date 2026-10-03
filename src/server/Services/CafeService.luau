@@ -24,6 +24,7 @@ local Economy = require(Shared.Config.Economy)
 local Formula = require(Shared.Util.Formula)
 local Map = require(Shared.Config.Map)
 local Net = require(Shared.Net)
+local Progression = require(Shared.Util.Progression)
 local Signal = require(Shared.Util.Signal)
 local Stats = require(Shared.Util.Stats)
 local Worlds = require(Shared.Config.Worlds)
@@ -429,6 +430,7 @@ serve = function(cafe: Cafe, customer: Customer, manual: boolean): boolean
 		amount = math.max(amount, critique)
 	end
 	EconomyService.earn(player, amount)
+	Progression.countServe(profile)
 	Net.fire(player, "Effect", "Coin", {
 		position = customer.root.Position,
 		amount = amount,
@@ -450,6 +452,7 @@ end
 local function removeStation(cafe: Cafe, station: Station)
 	cafe.stations[station.dishId] = nil
 	station.prompt:Destroy()
+	CollectionService:RemoveTag(station.part, Map.tags.ActiveStation)
 	for _, name in STATION_ATTRIBUTES do
 		station.part:SetAttribute(name, nil)
 	end
@@ -484,6 +487,8 @@ syncStations = function(cafe: Cafe)
 			tray = 0,
 		}
 		cafe.stations[dishId] = station
+		part:SetAttribute("Dish", dishId)
+		CollectionService:AddTag(part, Map.tags.ActiveStation)
 		prompt.Triggered:Connect(function(triggeringPlayer)
 			if cafe.stations[dishId] == station then
 				onCookPrompt(cafe, station, triggeringPlayer)
@@ -507,6 +512,7 @@ local function teardown(player: Player)
 		for _, name in STATION_ATTRIBUTES do
 			station.part:SetAttribute(name, nil)
 		end
+		CollectionService:RemoveTag(station.part, Map.tags.ActiveStation)
 	end
 	cafe.folder:Destroy() -- customers live in here
 	local decor = cafe.plot.root:FindFirstChild("VIPDecor")

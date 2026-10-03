@@ -16,6 +16,7 @@ Map.tags = {
 	-- Runtime tags set by the server (not placed by map builders)
 	Customer = "CafeCustomer",
 	BuyPad = "BuyPad",
+	ActiveStation = "CafeStation", -- state part of every station in use (tagged or built)
 	CashStack = "CashStack",
 }
 
