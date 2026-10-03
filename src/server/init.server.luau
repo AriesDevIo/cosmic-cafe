@@ -16,6 +16,7 @@ local order = {
 	"MonetizationService",
 	"StateService",
 	"WorldService",
+	"BuildService",
 	"EconomyService",
 	"CodexService",
 	"CafeService",

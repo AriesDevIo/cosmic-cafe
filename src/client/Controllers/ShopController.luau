@@ -47,6 +47,14 @@ local function refreshButtons()
 	for _, entry in buyables do
 		local count, cost = quote(profile, entry.dishId)
 		local level = Stats.dishLevel(profile, entry.dishId)
+		local lot = StateController.runtime().lot
+		if level == 0 and lot and lot.buildMode then
+			-- stations are bought on the lot, not here
+			entry.button.Text = "Build it\non your lot"
+			entry.button.BackgroundColor3 = Theme.colors.locked
+			entry.button.AutoButtonColor = false
+			continue
+		end
 		local verb = if level == 0 then "Unlock" else "Buy x" .. count
 		entry.button.Text = verb .. "\n" .. BigNum.money(cost)
 		local affordable = cost <= profile.money
@@ -136,7 +144,8 @@ local function dishRow(profile: any, dishId: string, order: number)
 			return
 		end
 		local _, cost = quote(current, dishId)
-		if cost > current.money then
+		local lot = StateController.runtime().lot
+		if cost > current.money or (Stats.dishLevel(current, dishId) == 0 and lot and lot.buildMode) then
 			EffectsController.play("Error")
 			return
 		end

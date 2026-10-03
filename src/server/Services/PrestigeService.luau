@@ -14,6 +14,7 @@ local Progression = require(Shared.Util.Progression)
 local Validate = require(Shared.Util.Validate)
 local Worlds = require(Shared.Config.Worlds)
 
+local BuildService = require(script.Parent.BuildService)
 local CodexService = require(script.Parent.CodexService)
 local DataService = require(script.Parent.DataService)
 local StateService = require(script.Parent.StateService)
@@ -38,7 +39,8 @@ function PrestigeService.start()
 			CodexService.awardBadge(player, Monetization.badges.FirstFranchise)
 		end
 		StateService.markDirty(player)
-		-- Back to the first world with a fresh cafe.
+		-- Back to the first world with a fresh, empty lot.
+		BuildService.resync(player)
 		WorldService.travel(player, Worlds.first)
 		Net.fire(player, "Effect", "Franchise", { gain = gain, total = profile.totalStarChefs })
 		Net.fireAll(

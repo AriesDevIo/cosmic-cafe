@@ -22,6 +22,7 @@ local Signal = require(Shared.Util.Signal)
 local Validate = require(Shared.Util.Validate)
 local Worlds = require(Shared.Config.Worlds)
 
+local LotBuilder = require(script.Parent.Parent.Build.LotBuilder)
 local DataService = require(script.Parent.DataService)
 local StateService = require(script.Parent.StateService)
 
@@ -34,8 +35,12 @@ export type Plot = {
 	counters: { BasePart },
 	tables: { BasePart },
 	spawns: { BasePart },
+	seats: { Seat }, -- seats of built tables (customers sit here)
 	owner: Player?,
 	generated: boolean,
+	-- true when the plot has a "Buildables" folder: it starts as an empty lot
+	-- and stations/tables/counters appear as the owner buys them (BuildService)
+	buildMode: boolean,
 }
 
 local WorldService = {}
@@ -43,10 +48,15 @@ local WorldService = {}
 -- (player, worldId, plot) after a player arrives in a world (also on join).
 WorldService.travelled = Signal.new() :: Signal.Signal<Player, string, Plot>
 WorldService.unlocked = Signal.new() :: Signal.Signal<Player, string>
+-- Plot lifecycle (BuildService listens).
+WorldService.plotCreated = Signal.new() :: Signal.Signal<Plot>
+WorldService.plotAssigned = Signal.new() :: Signal.Signal<Player, Plot>
+WorldService.plotReleased = Signal.new() :: Signal.Signal<Player, Plot>
 
 local TAGS = Map.tags
 local ATTR = Map.attributes
 local LAYOUT = Map.placeholder
+local BUILDABLES = Map.buildablesFolder
 
 local plots: { Plot } = {}
 local assignments: { [Player]: { [string]: Plot } } = {}
@@ -170,15 +180,26 @@ local function registerPlot(root: Instance, generated: boolean): Plot?
 		counters = {},
 		tables = {},
 		spawns = {},
+		seats = {},
 		owner = nil,
 		generated = generated,
+		buildMode = root:FindFirstChild(BUILDABLES) ~= nil,
 	}
 	table.insert(plots, plot)
 	return plot
 end
 
+-- Buildables are handled by BuildService, never by tags.
+local function insideBuildables(instance: Instance): boolean
+	local folder = instance:FindFirstAncestor(BUILDABLES)
+	return folder ~= nil and folder:IsA("Folder")
+end
+
 local function indexTagged()
 	for _, instance in CollectionService:GetTagged(TAGS.Station) do
+		if insideBuildables(instance) then
+			continue
+		end
 		local dishId = instance:GetAttribute(ATTR.Dish)
 		local dish = if type(dishId) == "string" then Dishes.byId[dishId] else nil
 		local part = basePartOf(instance)
@@ -199,6 +220,9 @@ local function indexTagged()
 	}
 	for _, entry in lists do
 		for _, instance in CollectionService:GetTagged(entry.tag) do
+			if insideBuildables(instance) then
+				continue
+			end
 			local part = basePartOf(instance)
 			local plot = owningPlot(instance, nil)
 			if part and plot then
@@ -231,6 +255,23 @@ local function completePlot(plot: Plot)
 		return folder :: Folder
 	end
 
+	-- Lots with buildables only need somewhere for customers to come from.
+	if plot.buildMode then
+		if #plot.spawns == 0 then
+			local part = makePart({
+				Name = "CustomerSpawn",
+				Size = Vector3.new(4, 1, 4),
+				CFrame = plot.cframe * CFrame.new(LAYOUT.customerSpawnOffset),
+				Transparency = 1,
+				CanCollide = false,
+			})
+			part.Parent = parentFolder()
+			CollectionService:AddTag(part, TAGS.CustomerSpawn)
+			table.insert(plot.spawns, part)
+		end
+		return
+	end
+
 	local count = #world.dishes
 	for index, dishId in world.dishes do
 		local existing: BasePart? = plot.stations[dishId]
@@ -244,7 +285,7 @@ local function completePlot(plot: Plot)
 				Color = world.color:Lerp(Color3.new(1, 1, 1), 0.35),
 			})
 			part:SetAttribute(ATTR.Dish, dishId)
-			label(part, dish.icon .. " " .. dish.displayName)
+			label(part, dish.displayName)
 			part.Parent = parentFolder()
 			CollectionService:AddTag(part, TAGS.Station)
 			plot.stations[dishId] = part
@@ -313,19 +354,28 @@ local function nextPlotCFrame(worldId: string): CFrame
 	return CFrame.new(origin + LAYOUT.plotSpacing * generatedCount)
 end
 
+-- A generated empty lot: a floor plus the world's buildables from config.
 local function generatePlot(worldId: string): Plot
 	local world = Worlds.byId[worldId]
 	local surface = nextPlotCFrame(worldId)
+	local model = Instance.new("Model")
+	model.Name = "CafePlot_" .. worldId
 	local floor = makePart({
-		Name = "CafePlot_" .. worldId,
+		Name = "Lot",
 		Size = LAYOUT.plotSize,
 		CFrame = surface * CFrame.new(0, -LAYOUT.plotSize.Y / 2, 0),
 		Color = world.color,
+		Material = Enum.Material.Grass,
 	})
-	floor:SetAttribute(ATTR.World, worldId)
-	floor.Parent = generatedFolder
-	CollectionService:AddTag(floor, TAGS.CafePlot)
-	local plot = registerPlot(floor, true) :: Plot
+	floor.Parent = model
+	model.PrimaryPart = floor
+	model.WorldPivot = surface
+	model:SetAttribute(ATTR.World, worldId)
+	LotBuilder.build(worldId, surface, model)
+	model.Parent = generatedFolder
+	CollectionService:AddTag(model, TAGS.CafePlot)
+	local plot = registerPlot(model, true) :: Plot
+	WorldService.plotCreated:fire(plot)
 	completePlot(plot)
 	return plot
 end
@@ -441,6 +491,15 @@ end
 
 -- Plots API ---------------------------------------------------------------------------------
 
+function WorldService.allPlots(): { Plot }
+	return plots
+end
+
+-- Every plot a player currently owns (one per visited world).
+function WorldService.plotsOf(player: Player): { [string]: Plot }
+	return assignments[player] or {}
+end
+
 function WorldService.plotFor(player: Player, worldId: string): Plot
 	local mine = assignments[player]
 	if mine == nil then
@@ -464,6 +523,7 @@ function WorldService.plotFor(player: Player, worldId: string): Plot
 	plot.root:SetAttribute(ATTR.Owner, player.UserId)
 	plot.root:SetAttribute("OwnerName", player.DisplayName)
 	mine[worldId] = plot
+	WorldService.plotAssigned:fire(player, plot)
 	return plot
 end
 
@@ -663,6 +723,7 @@ function WorldService.start()
 		assignments[player] = nil
 		if mine then
 			for _, plot in mine do
+				WorldService.plotReleased:fire(player, plot)
 				plot.owner = nil
 				plot.root:SetAttribute(ATTR.Owner, nil)
 				plot.root:SetAttribute("OwnerName", nil)

@@ -19,6 +19,8 @@ Theme.colors = {
 	textDim = Color3.fromRGB(186, 180, 214),
 	gold = Color3.fromRGB(255, 215, 0),
 	star = Color3.fromRGB(255, 226, 110),
+	pink = Color3.fromRGB(255, 120, 200),
+	outline = Color3.fromRGB(30, 20, 45), -- thick cartoon outlines
 }
 
 Theme.fonts = {

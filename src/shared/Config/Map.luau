@@ -15,7 +15,13 @@ Map.tags = {
 	UnlockGate = "UnlockGate", -- Attribute World = "<WorldId>"
 	-- Runtime tags set by the server (not placed by map builders)
 	Customer = "CafeCustomer",
+	BuyPad = "BuyPad",
+	CashStack = "CashStack",
 }
+
+-- Folder inside a CafePlot model that holds its tycoon buildables.
+Map.buildablesFolder = "Buildables"
+Map.padSpotName = "PadSpot"
 
 Map.attributes = {
 	World = "World",

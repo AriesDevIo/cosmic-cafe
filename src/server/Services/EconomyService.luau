@@ -15,6 +15,7 @@ local Signal = require(Shared.Util.Signal)
 local Stats = require(Shared.Util.Stats)
 local Validate = require(Shared.Util.Validate)
 
+local BuildService = require(script.Parent.BuildService)
 local DataService = require(script.Parent.DataService)
 local StateService = require(script.Parent.StateService)
 
@@ -57,14 +58,15 @@ function EconomyService.buyDish(player: Player, dishId: string, amount: number):
 		return false
 	end
 	local before = Stats.dishLevel(profile, dishId)
-	local ok, err = Progression.buyDish(profile, dishId, amount)
+	local dish = Dishes.byId[dishId]
+	local allowUnlock = not BuildService.usesBuildables(player, dish.world)
+	local ok, err = Progression.buyDish(profile, dishId, amount, allowUnlock)
 	if not ok then
 		EconomyService.notify(player, err or "Can't buy that", "error")
 		return false
 	end
 	if before == 0 then
-		local dish = Dishes.byId[dishId]
-		EconomyService.notify(player, dish.icon .. " " .. dish.displayName .. " is on the menu!", "success")
+		EconomyService.notify(player, dish.displayName .. " is on the menu!", "success")
 	end
 	StateService.markDirty(player)
 	EconomyService.dishChanged:fire(player, dishId)

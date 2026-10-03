@@ -29,6 +29,7 @@ local Stats = require(Shared.Util.Stats)
 local Worlds = require(Shared.Config.Worlds)
 
 local Mechanics = require(script.Parent.Parent.Mechanics)
+local BuildService = require(script.Parent.BuildService)
 local CodexService = require(script.Parent.CodexService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -88,6 +89,8 @@ local CAFE = Economy.cafe
 local ATTR = Map.attributes
 
 local cafes: { [Player]: Cafe } = {}
+local STATION_ATTRIBUTES = { "Level", "Ready", "TrayCapacity", "Cooking", "CookEnd", "CookTime", "Auto", ATTR.Owner }
+local syncStations: (cafe: Cafe) -> ()
 local customerFolder: Folder
 local nextCustomerId = 0
 
@@ -228,6 +231,13 @@ local function freeSpot(cafe: Cafe): BasePart?
 		taken[customer.spot] = true
 	end
 	local spots: { BasePart } = if #cafe.plot.tables > 0 then cafe.plot.tables else cafe.plot.counters
+	if #spots == 0 then
+		-- a fresh lot: customers line up at the stations
+		spots = {}
+		for _, station in cafe.stations do
+			table.insert(spots, station.part)
+		end
+	end
 	local free = {}
 	for _, spot in spots do
 		if not taken[spot] and spot.Parent then
@@ -437,6 +447,52 @@ end
 
 -- Setup / teardown --------------------------------------------------------------------
 
+local function removeStation(cafe: Cafe, station: Station)
+	cafe.stations[station.dishId] = nil
+	station.prompt:Destroy()
+	for _, name in STATION_ATTRIBUTES do
+		station.part:SetAttribute(name, nil)
+	end
+end
+
+-- Matches cafe.stations to the plot's stations (they appear as they're built).
+syncStations = function(cafe: Cafe)
+	for dishId, station in cafe.stations do
+		if cafe.plot.stations[dishId] ~= station.part then
+			removeStation(cafe, station)
+		end
+	end
+	for dishId, part in cafe.plot.stations do
+		if cafe.stations[dishId] then
+			continue
+		end
+		local dish = Dishes.byId[dishId]
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "CookPrompt"
+		prompt.ActionText = "Cook"
+		prompt.ObjectText = dish.displayName
+		prompt.HoldDuration = Map.prompt.holdDuration
+		prompt.MaxActivationDistance = Map.prompt.maxDistance
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = part
+		local station: Station = {
+			dishId = dishId,
+			part = part,
+			prompt = prompt,
+			cooking = false,
+			cookEnd = 0,
+			tray = 0,
+		}
+		cafe.stations[dishId] = station
+		prompt.Triggered:Connect(function(triggeringPlayer)
+			if cafe.stations[dishId] == station then
+				onCookPrompt(cafe, station, triggeringPlayer)
+			end
+		end)
+		syncStation(cafe, station)
+	end
+end
+
 local function teardown(player: Player)
 	local cafe = cafes[player]
 	if cafe == nil then
@@ -448,7 +504,7 @@ local function teardown(player: Player)
 	end
 	for _, station in cafe.stations do
 		station.prompt:Destroy()
-		for _, name in { "Level", "Ready", "TrayCapacity", "Cooking", "CookEnd", "CookTime", "Auto", ATTR.Owner } do
+		for _, name in STATION_ATTRIBUTES do
 			station.part:SetAttribute(name, nil)
 		end
 	end
@@ -497,34 +553,8 @@ local function setup(player: Player, worldId: string, plot: Plot)
 		folder = folder,
 		random = Random.new(),
 	}
-	for dishId, part in plot.stations do
-		local dish = Dishes.byId[dishId]
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "CookPrompt"
-		prompt.ActionText = "Cook"
-		prompt.ObjectText = dish.icon .. " " .. dish.displayName
-		prompt.HoldDuration = Map.prompt.holdDuration
-		prompt.MaxActivationDistance = Map.prompt.maxDistance
-		prompt.RequiresLineOfSight = false
-		prompt.Parent = part
-		local station: Station = {
-			dishId = dishId,
-			part = part,
-			prompt = prompt,
-			cooking = false,
-			cookEnd = 0,
-			tray = 0,
-		}
-		cafe.stations[dishId] = station
-		table.insert(
-			cafe.connections,
-			prompt.Triggered:Connect(function(triggeringPlayer)
-				onCookPrompt(cafe, station, triggeringPlayer)
-			end)
-		)
-		syncStation(cafe, station)
-	end
 	cafes[player] = cafe
+	syncStations(cafe)
 	applyDecor(player, plot)
 	StateService.pushRuntime(player)
 end
@@ -605,6 +635,7 @@ end
 function CafeService.refresh(player: Player)
 	local cafe = cafes[player]
 	if cafe then
+		syncStations(cafe)
 		for _, station in cafe.stations do
 			syncStation(cafe, station)
 		end
@@ -658,6 +689,9 @@ end
 
 function CafeService.start()
 	WorldService.travelled:connect(setup)
+	BuildService.built:connect(function(player)
+		CafeService.refresh(player)
+	end)
 	EconomyService.dishChanged:connect(function(player)
 		CafeService.refresh(player)
 	end)

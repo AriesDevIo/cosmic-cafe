@@ -34,6 +34,69 @@ Tag names and placeholder sizes live in `src/shared/Config/Map.luau`.
 The easiest setup is to group each cafe into a `Model`, tag the model
 `CafePlot`, and put everything inside it.
 
+## Buildables (the tycoon lot)
+
+A `CafePlot` **model** that contains a `Folder` named **`Buildables`** starts
+every player on an **empty lot**. At startup the server moves every buildable
+model into `ServerStorage` (CFrames are kept). The plot's owner then sees up to
+3 glowing **buy pads** (cheapest first) for buildables whose requirements they
+own; stepping on a pad buys it and the model rises back into place, piece by
+piece. Owned buildables are saved and restored instantly on join. A Franchise
+resets the lot.
+
+```
+CafePlot (Model, tag CafePlot, World = "StreetStall")
+├── Floor ...                       (anything static: always visible)
+├── CustomerSpawn (tag)             (static is fine; generated if missing)
+└── Buildables (Folder)
+    ├── CoffeeCart (Model)          BuildId=CoffeeCart Cost=0 Order=1 Kind=Station Dish=Coffee
+    │   ├── ...parts...
+    │   └── PadSpot (Part)          where the buy pad appears (hidden at runtime)
+    ├── Table1 (Model)              BuildId=Table1 Cost=15 Order=2 Requires=CoffeeCart Kind=Table
+    │   ├── Top, Leg (Parts)
+    │   ├── SeatA, SeatB (Seat)     customers sit here (optional)
+    │   └── PadSpot (Part)
+    └── ...
+```
+
+Attributes on each buildable **Model** (direct child of `Buildables`):
+
+| Attribute | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `BuildId` | string | yes | Unique id within the plot. Saved in the player's profile — **don't rename after release**. |
+| `Cost` | number | yes | Price. `0` shows "FREE". The first station should be free. |
+| `Order` | number | no | Tie-breaker when two pads cost the same (lower first). |
+| `Requires` | string | no | Comma-separated `BuildId`s that must be owned first, e.g. `"Table1,Counter"`. Empty = available from the start. |
+| `Kind` | string | yes | `Station`, `Table`, `Counter`, `Structure` or `Decor`. |
+| `Dish` | string | Station only | Dish id cooked here (must belong to the plot's world). Building it unlocks the dish. |
+| `DisplayName` | string | no | Shown on the pad. Defaults to the dish's station name ("Coffee Cart") or the model name. |
+
+Each buildable needs a child **`PadSpot`** `BasePart` (any depth) marking where
+its pad appears — usually on the floor in front of it. The pad is centered on
+the PadSpot's position. Without one the model's pivot is used (with a warning).
+
+What each kind does once built:
+
+- **Station** – registers as the dish's station (cook prompt + billboard). Set
+  the model's `PrimaryPart`; that part carries the station state.
+- **Counter** – customers queue in front of it. Before a counter is built they
+  line up at the first station.
+- **Table** – customers sit at its `Seat`s to eat (and tip 20% more). A table
+  without seats still counts; customers eat standing next to it.
+- **Structure / Decor** – visual progression; use `Requires` to put them in
+  front of later stations.
+
+Tips:
+
+- Keep parts **Anchored**. The rise animation is client-only, so the server
+  CFrames never move.
+- Don't tag buildables with `Station`/`Table`/`Counter`; tags inside
+  `Buildables` are ignored (the `Kind` attribute decides).
+- Plots **without** a `Buildables` folder keep the old behaviour: everything
+  tagged is there from the start and dishes are unlocked from the Menu.
+- Generated lots (no hand-built plot) use the layout in
+  `src/shared/Config/Buildables.luau` with exactly this contract.
+
 ## Ids
 
 World ids (`Config/Worlds.luau`): `StreetStall`, `CloudCity`, `Underwater`,
@@ -54,6 +117,8 @@ Dish ids (`Config/Dishes.luau`):
 | On | Attribute | Meaning |
 | --- | --- | --- |
 | `CafePlot` | `OwnerUserId`, `OwnerName` | Who owns the plot this session (client draws the "<name>'s Cafe" sign). |
+| buildable `Model` | `BuiltAt`, `OwnerUserId` | Server time it was bought (`0` = restored on join, no animation). |
+| buy pad `Part` (tag `BuyPad`) | `BuildId`, `DisplayName`, `Cost`, `Kind`, `OwnerUserId` | Generated pads in `Workspace.CosmicCafePads`. |
 | `Station` part | `Level`, `Ready`, `TrayCapacity`, `Cooking`, `CookEnd`, `CookTime`, `Auto`, `OwnerUserId` | Read by the client billboard. |
 | customer `Model` (tag `CafeCustomer`) | `Species`, `Order`, `Golden`, `Critic`, `Arrived`, `PatienceEnd`, `Leaving`, `OwnerUserId` | Read by the client order bubble. |
 | `Workspace` | `Weather_<WorldId>`, `WeatherEnds_<WorldId>` | Current weather rush (`""` when calm). |
