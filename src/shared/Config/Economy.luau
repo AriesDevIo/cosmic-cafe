@@ -54,7 +54,7 @@ Economy.offline = {
 
 Economy.prestige = {
 	-- totalStarChefs = floor((lifetimeEarnings / divisor) ^ exponent)
-	divisor = 3e7,
+	divisor = 6e7,
 	exponent = 0.5,
 	incomeBonusPerStarChef = 0.06, -- +6% income per Star Chef ever earned
 	minGain = 1, -- the Franchise button unlocks once a reset would give this many

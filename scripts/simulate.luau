@@ -1,7 +1,7 @@
 --!strict
 -- Simulates the first hours of play and prints when every unlock happens.
 -- Usage (repo root):  lune run scripts/simulate [hours] [--all]
---   --all   also print milestones and Star Chef thresholds
+--   --all   also print every 10th dish level and Star Chef thresholds
 local process = require("@lune/process")
 local Loader = require("../tests/lib/Loader")
 local PacingSim = require("./lib/PacingSim")
@@ -28,7 +28,7 @@ local result = PacingSim.run({ seconds = hours * 3600 })
 print(string.format("=== Cosmic Cafe pacing: first %gh of play ===\n", hours))
 print("  total    run      event")
 for _, event in result.events do
-	local quiet = event.kind == "milestone" or event.kind == "starchef"
+	local quiet = event.kind == "goal" or event.kind == "starchef"
 	if verbose or not quiet then
 		print(string.format("  %s  %s  [run %d] %s", clock(event.time), clock(event.runTime), event.run, event.text))
 	end
@@ -117,6 +117,20 @@ if franchise and secondFranchise then
 		string.format("%s vs %s = %.1fx", clock(franchise.runTime), clock(secondFranchise.runTime), speedup)
 	)
 end
+
+-- Informational: the longest stretch of run 1 without a new dish, hire,
+-- world or x2 milestone (the "next unlock" bar is all the player sees then).
+local lastGoal, driest, driestFrom = 0, 0, 0
+for _, event in result.events do
+	local isGoal = event.kind == "dish" or event.kind == "hire" or event.kind == "world" or event.kind == "milestone"
+	if event.run == 1 and isGoal then
+		if event.time - lastGoal > driest then
+			driest, driestFrom = event.time - lastGoal, lastGoal
+		end
+		lastGoal = event.time
+	end
+end
+print(string.format("\nLongest dry spell in run 1: %s starting at %s", clock(driest), clock(driestFrom)))
 
 print("\n--- Targets ---")
 local failed = 0
