@@ -83,7 +83,7 @@ function StaffService.start()
 
 	Net.onServerEvent("Fuse", function(player, staffIds)
 		local profile = DataService.get(player)
-		if profile == nil or not Validate.stringArray(staffIds, Staff.fuseCount, 16) then
+		if profile == nil or not Validate.stringArray(staffIds, Staff.fuseCount, Validate.ID_LENGTH) then
 			return
 		end
 		local ok, err, item = Progression.fuse(profile, staffIds :: { string })
@@ -99,7 +99,7 @@ function StaffService.start()
 
 	Net.onServerEvent("Assign", function(player, staffId, worldId)
 		local profile = DataService.get(player)
-		if profile == nil or not Validate.string(staffId, 16) then
+		if profile == nil or not Validate.string(staffId, Validate.ID_LENGTH) then
 			return
 		end
 		if worldId ~= nil and not Validate.oneOf(worldId, Worlds.byId) then

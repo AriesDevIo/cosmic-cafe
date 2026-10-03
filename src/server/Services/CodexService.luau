@@ -80,7 +80,7 @@ function CodexService.init() end
 function CodexService.start()
 	Net.onServerEvent("Combine", function(player, ingredients)
 		local profile = DataService.get(player)
-		if profile == nil or not Validate.stringArray(ingredients, Dishes.maxRecipeIngredients, 32) then
+		if profile == nil or not Validate.stringArray(ingredients, Dishes.maxRecipeIngredients, Validate.ID_LENGTH) then
 			return
 		end
 		local list = ingredients :: { string }

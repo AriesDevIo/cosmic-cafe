@@ -189,13 +189,13 @@ local function buildCustomerModel(species: Customers.Species, golden: boolean): 
 	piece("Body", sizes.bodySize, Vector3.new(0, bodyY - sizes.rootSize.Y / 2, 0), Enum.PartType.Block, color)
 	local headY = sizes.bodySize.Y + sizes.headSize.Y / 2 - sizes.rootSize.Y / 2
 	piece("Head", sizes.headSize, Vector3.new(0, headY, 0), Enum.PartType.Ball, color)
-	local eye = Vector3.new(0.45, 0.45, 0.45)
+	local eye = sizes.eyeSize
 	piece("EyeL", eye, Vector3.new(-0.45, headY + 0.2, -1.05), Enum.PartType.Ball, Color3.new(0, 0, 0))
 	piece("EyeR", eye, Vector3.new(0.45, headY + 0.2, -1.05), Enum.PartType.Ball, Color3.new(0, 0, 0))
 	local antenna = piece(
 		"Antenna",
-		Vector3.new(0.25, 1.2, 0.25),
-		Vector3.new(0, headY + sizes.headSize.Y / 2 + 0.5, 0),
+		sizes.antennaSize,
+		Vector3.new(0, headY + (sizes.headSize.Y + sizes.antennaSize.Y) / 2, 0),
 		Enum.PartType.Block,
 		color
 	)

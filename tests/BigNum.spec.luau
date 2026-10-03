@@ -1,3 +1,4 @@
+--!strict
 local Loader = require("./lib/Loader")
 local TestKit = require("./lib/TestKit")
 local describe, it, expect = TestKit.describe, TestKit.it, TestKit.expect

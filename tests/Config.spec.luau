@@ -1,3 +1,4 @@
+--!strict
 -- Integrity checks: every id referenced in config exists.
 local Loader = require("./lib/Loader")
 local TestKit = require("./lib/TestKit")

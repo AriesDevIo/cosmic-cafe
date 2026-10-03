@@ -29,13 +29,13 @@ Map.attributes = {
 -- no PlotId belong to the nearest plot within this many studs.
 Map.plotRadius = 150
 
--- Max players per server; we make sure each world has this many plots.
-Map.plotsPerWorld = 8
-
 Map.prompt = {
 	maxDistance = 12,
 	holdDuration = 0,
+	unlockHoldDuration = 0.5, -- UnlockGate prompts need a short hold
 }
+
+Map.labelMaxDistance = 80 -- placeholder name labels
 
 Map.portalCooldown = 2 -- seconds between portal touches per player
 
@@ -65,13 +65,14 @@ Map.placeholder = {
 	portalOffsetX = 50, -- generated portals line up on the plot's right side
 	portalSpacingZ = 14,
 	portalSize = Vector3.new(8, 10, 1),
-	gateSize = Vector3.new(20, 14, 2),
 }
 
 Map.customer = {
 	rootSize = Vector3.new(2, 2, 2),
 	bodySize = Vector3.new(2.6, 3, 2.6),
 	headSize = Vector3.new(2.4, 2.4, 2.4),
+	eyeSize = Vector3.new(0.45, 0.45, 0.45),
+	antennaSize = Vector3.new(0.25, 1.2, 0.25),
 	standOffset = Vector3.new(0, 0, 4), -- where a customer stands relative to their table
 	goldenSparkleRate = 20,
 }

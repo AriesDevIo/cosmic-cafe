@@ -1,3 +1,4 @@
+--!strict
 -- Guards the pacing targets from the design doc. If you retune on purpose,
 -- run `lune run scripts/simulate` and adjust these bounds together.
 local TestKit = require("./lib/TestKit")

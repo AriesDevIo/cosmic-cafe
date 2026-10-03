@@ -102,7 +102,7 @@ local function label(part: BasePart, text: string)
 	gui.Size = UDim2.fromOffset(160, 28)
 	gui.StudsOffset = Vector3.new(0, part.Size.Y / 2 + 1.5, 0)
 	gui.AlwaysOnTop = false
-	gui.MaxDistance = 80
+	gui.MaxDistance = Map.labelMaxDistance
 	local text_ = Instance.new("TextLabel")
 	text_.BackgroundTransparency = 1
 	text_.Size = UDim2.fromScale(1, 1)
@@ -575,7 +575,7 @@ local function hookGate(gate: Instance)
 	prompt.Name = "UnlockPrompt"
 	prompt.ActionText = "Unlock " .. BigNum.money(world.unlockCost)
 	prompt.ObjectText = world.displayName
-	prompt.HoldDuration = 0.5
+	prompt.HoldDuration = Map.prompt.unlockHoldDuration
 	prompt.MaxActivationDistance = Map.prompt.maxDistance
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = part

@@ -4,6 +4,9 @@
 
 local Validate = {}
 
+-- Longest id (dish, world, staff, ingredient...) a client may send.
+Validate.ID_LENGTH = 32
+
 function Validate.string(value: unknown, maxLength: number?): boolean
 	return type(value) == "string" and #value > 0 and #value <= (maxLength or 64)
 end

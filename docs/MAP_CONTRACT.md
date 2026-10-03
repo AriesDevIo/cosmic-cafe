@@ -14,7 +14,7 @@ Tag names and placeholder sizes live in `src/shared/Config/Map.luau`.
 
 | Tag | Put it on | Required attributes | Optional attributes | Notes |
 | --- | --- | --- | --- | --- |
-| `CafePlot` | A `BasePart` (the floor) or a `Model` | `World` (string): a world id, e.g. `StreetStall` | `PlotId` (string) | One player's cafe in that world. Build one per player slot (8 by default, `Map.plotsPerWorld`). Missing plots are generated next to the first one. The plot's **top surface** (a part) or **pivot** (a model) is the origin; **+Z (LookVector reversed) is the front** where customers come from. |
+| `CafePlot` | A `BasePart` (the floor) or a `Model` | `World` (string): a world id, e.g. `StreetStall` | `PlotId` (string) | One player's cafe in that world. Build one per player slot (= your server's max players); when every plot of a world is taken, extra plots are generated in a row next to the first one. The plot's **top surface** (a part) or **pivot** (a model) is the origin; **+Z (LookVector reversed) is the front** where customers come from. |
 | `Station` | A `BasePart` or `Model` | `Dish` (string): a dish id, e.g. `Coffee` | `PlotId` | A cooking station. Gets a "Cook" ProximityPrompt and a billboard. One per dish per plot; missing ones are generated in a row at the back of the plot. |
 | `Counter` | A `BasePart` or `Model` | – | `PlotId` | Fallback customer spots when a plot has no tables. Generated if missing. |
 | `Table` | A `BasePart` or `Model` | – | `PlotId` | Each table is one customer spot; customers stand on its front side. Generated (6) if a plot has none. |
