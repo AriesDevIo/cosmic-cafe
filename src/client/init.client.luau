@@ -11,6 +11,7 @@ local order = {
 	"PopupController",
 	"ShopController",
 	"StaffController",
+	"WorldsController",
 	"WorldObjectsController",
 	-- StateController last: it fires Ready, so every listener must be connected.
 	"StateController",
