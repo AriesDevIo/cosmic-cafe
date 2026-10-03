@@ -21,6 +21,7 @@ local order = {
 	"CafeService",
 	"StaffService",
 	"OfflineService",
+	"DailyService",
 }
 
 local services: { Service } = {}
