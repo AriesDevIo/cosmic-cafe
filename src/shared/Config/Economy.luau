@@ -52,9 +52,9 @@ Economy.offline = {
 
 Economy.prestige = {
 	-- totalStarChefs = floor((lifetimeEarnings / divisor) ^ exponent)
-	divisor = 4e7,
+	divisor = 3e7,
 	exponent = 0.5,
-	incomeBonusPerStarChef = 0.10, -- +10% income per Star Chef ever earned
+	incomeBonusPerStarChef = 0.06, -- +6% income per Star Chef ever earned
 	minGain = 1, -- the Franchise button unlocks once a reset would give this many
 }
 
@@ -92,19 +92,25 @@ Economy.autosaveInterval = 60
 -- Assumptions used ONLY by the pacing simulator (scripts/simulate.luau).
 Economy.sim = {
 	dt = 1, -- seconds per simulation step
+	firstServeSeconds = 8, -- walk to the stall + tap the station + tap the customer
 	-- How much of the theoretical rate a human gets while cooking/serving by hand.
 	manualEfficiency = 0.55,
 	-- With a Barista but no Waiter the player only has to serve.
 	baristaOnlyEfficiency = 0.8,
 	averageStreakMultiplier = 1.4, -- typical streak while actively serving
-	averageTipMultiplier = 1.1,
-	-- The bot only buys something whose payback time is below this many seconds,
-	-- unless it's the cheapest affordable action (keeps the bot from idling forever).
+	-- Share of time a player with a Waiter still serves by hand (keeps a streak).
+	activeShare = 0.5,
+	-- The bot only buys upgrades that pay for themselves within this many seconds;
+	-- otherwise it saves for the next world.
 	maxPaybackSeconds = 600,
-	-- The bot franchises once the gain reaches this fraction of current bonus+1.
-	franchiseWhenGainAtLeast = 12,
-	runs = 2,
+	-- The bot franchises once a reset would give at least this many Star Chefs
+	-- AND at least franchiseGainRatio * the Star Chefs it already has.
+	franchiseWhenGainAtLeast = 15,
+	franchiseGainRatio = 1.0,
+	-- Tree nodes the bot buys after a franchise, in priority order.
+	franchiseNodeOrder = { "SeedMoney", "AutoBuy", "TipJar", "HeadStart", "LongNap1", "GoldenRadar" },
 	runSeconds = 3 * 60 * 60,
+	snapshotEvery = 600,
 }
 
 return Economy

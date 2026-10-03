@@ -35,7 +35,7 @@ Staff.roles = {
 		icon = "🧑‍🍳",
 		description = "Auto-cooks every station in their world. Rarity speeds up cooking.",
 		global = false,
-		hireCost = 100,
+		hireCost = 250,
 		unlockWorldIndex = 1,
 	},
 	Waiter = {
@@ -44,7 +44,7 @@ Staff.roles = {
 		icon = "🤵",
 		description = "Auto-serves customers in their world. Rarity speeds up serving.",
 		global = false,
-		hireCost = 1200,
+		hireCost = 2500,
 		unlockWorldIndex = 1,
 	},
 	Manager = {
