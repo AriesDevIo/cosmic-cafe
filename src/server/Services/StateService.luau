@@ -79,7 +79,7 @@ function StateService.pushRuntime(player: Player)
 	end
 end
 
-local function flush(player: Player, kind: Dirty)
+local function flush(player: Player, kind: string)
 	local profile = DataService.get(player)
 	if profile == nil or not readyPlayers[player] then
 		return
@@ -125,7 +125,7 @@ function StateService.start()
 	task.spawn(function()
 		while true do
 			task.wait(Economy.stateSyncInterval)
-			local batch = dirty
+			local batch: { [Player]: Dirty } = dirty
 			dirty = {}
 			for player, kind in batch do
 				flush(player, kind)

@@ -35,18 +35,19 @@ function EffectsController.play(name: string)
 	if def == nil then
 		return
 	end
-	local sound = soundCache[name]
+	local sound: Sound? = soundCache[name]
 	if sound == nil then
-		sound = Builder.new("Sound", {
+		local created: Sound = Builder.new("Sound", {
 			Name = name,
 			SoundId = def.id,
 			Volume = def.volume,
 			PlaybackSpeed = def.pitch,
 			Parent = SoundService,
 		})
-		soundCache[name] = sound
+		soundCache[name] = created
+		sound = created
 	end
-	SoundService:PlayLocalSound(sound)
+	SoundService:PlayLocalSound(sound :: Sound)
 end
 
 -- Number animation ------------------------------------------------------------------

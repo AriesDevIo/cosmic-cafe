@@ -187,7 +187,8 @@ local function indexTagged()
 			continue
 		end
 		local plot = owningPlot(instance, dish.world)
-		if plot and plot.stations[dish.id] == nil then
+		local existing: BasePart? = if plot then plot.stations[dish.id] else nil
+		if plot and existing == nil then
 			plot.stations[dish.id] = part
 		end
 	end
@@ -232,7 +233,8 @@ local function completePlot(plot: Plot)
 
 	local count = #world.dishes
 	for index, dishId in world.dishes do
-		if plot.stations[dishId] == nil then
+		local existing: BasePart? = plot.stations[dishId]
+		if existing == nil then
 			local dish = Dishes.byId[dishId]
 			local x = (index - (count + 1) / 2) * LAYOUT.stationSpacing
 			local part = makePart({

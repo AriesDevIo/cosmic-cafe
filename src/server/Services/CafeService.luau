@@ -226,7 +226,7 @@ local function freeSpot(cafe: Cafe): BasePart?
 	for _, customer in cafe.customers do
 		taken[customer.spot] = true
 	end
-	local spots = if #cafe.plot.tables > 0 then cafe.plot.tables else cafe.plot.counters
+	local spots: { BasePart } = if #cafe.plot.tables > 0 then cafe.plot.tables else cafe.plot.counters
 	local free = {}
 	for _, spot in spots do
 		if not taken[spot] and spot.Parent then
@@ -291,7 +291,7 @@ local serve: (cafe: Cafe, customer: Customer, manual: boolean) -> boolean
 
 local function spawnCustomer(cafe: Cafe)
 	local profile = DataService.get(cafe.player)
-	local spawnPart = cafe.plot.spawns[1]
+	local spawnPart: BasePart? = cafe.plot.spawns[1]
 	if profile == nil or spawnPart == nil then
 		return
 	end
@@ -679,7 +679,10 @@ function CafeService.start()
 		accumulator = 0
 		local t = now()
 		for _, cafe in cafes do
-			local ok, err = pcall(tickCafe, cafe, t)
+			local ok, err = pcall(function()
+				tickCafe(cafe, t)
+				return nil
+			end)
 			if not ok then
 				warn("[CafeService] tick failed for " .. cafe.player.Name .. ": " .. tostring(err))
 			end

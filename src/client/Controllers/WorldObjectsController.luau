@@ -276,7 +276,7 @@ end
 local function refreshSigns()
 	for _, plot in CollectionService:GetTagged(Map.tags.CafePlot) do
 		local name = plot:GetAttribute("OwnerName")
-		local sign = plotSigns[plot]
+		local sign: BillboardGui? = plotSigns[plot]
 		if name == nil then
 			if sign then
 				sign:Destroy()
@@ -289,7 +289,7 @@ local function refreshSigns()
 			if adornee == nil then
 				continue
 			end
-			sign = Builder.new("BillboardGui", {
+			local created: BillboardGui = Builder.new("BillboardGui", {
 				Size = UDim2.fromOffset(260, 40),
 				StudsOffset = Vector3.new(0, 18, 0),
 				MaxDistance = 200,
@@ -302,9 +302,10 @@ local function refreshSigns()
 				Font = Theme.fonts.title,
 				TextStrokeTransparency = 0.2,
 				MaxTextSize = 30,
-				Parent = sign,
+				Parent = created,
 			})
-			plotSigns[plot] = sign
+			plotSigns[plot] = created
+			sign = created
 		end
 		local label = (sign :: BillboardGui):FindFirstChildOfClass("TextLabel") :: TextLabel
 		label.Text = name .. "'s Cafe"

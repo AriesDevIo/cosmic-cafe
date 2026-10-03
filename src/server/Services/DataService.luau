@@ -141,18 +141,21 @@ local function loadProfile(player: Player): Profile?
 	for attempt = 1, STORE.loadAttempts + 1 do
 		local steal = attempt > STORE.loadAttempts
 		local lockedByOther = false
-		local ok, err = pcall(store.update, key, function(old: Record?): Record?
-			local record: Record = old or { data = nil, meta = {} }
-			record.meta = record.meta or {}
-			local session = record.meta.session
-			local alive = session ~= nil and now() - session.time < STORE.lockTimeoutSeconds
-			if session and not isMine(session) and alive and not steal then
-				lockedByOther = true
-				return nil -- cancel the write, try again later
-			end
-			record.meta.session = mySession()
-			claimed = record
-			return record
+		local ok, err = pcall(function()
+			store.update(key, function(old: Record?): Record?
+				local record: Record = old or { data = nil, meta = {} }
+				record.meta = record.meta or {}
+				local session = record.meta.session
+				local alive = session ~= nil and now() - session.time < STORE.lockTimeoutSeconds
+				if session and not isMine(session) and alive and not steal then
+					lockedByOther = true
+					return nil -- cancel the write, try again later
+				end
+				record.meta.session = mySession()
+				claimed = record
+				return record
+			end)
+			return nil
 		end)
 		if not ok then
 			claimed = nil -- the transform ran but the write failed
@@ -198,20 +201,25 @@ local function saveEntry(player: Player, entry: Entry, release: boolean): boolea
 	local lost = false
 	local snapshot = sanitize(entry.profile)
 	for attempt = 1, STORE.saveAttempts do
-		local ok, err = pcall(store.update, entry.key, function(old: Record?): Record?
-			local meta = if old and old.meta then old.meta else {}
-			if meta.session and not isMine(meta.session) then
-				lost = true
-				return nil
-			end
-			return {
-				data = snapshot,
-				meta = {
-					session = if release then nil else mySession(),
-					saves = (meta.saves or 0) + 1,
-					lastSave = now(),
-				},
-			}
+		local ok, err = pcall(function()
+			store.update(entry.key, function(old: Record?): Record?
+				local meta: { session: Session?, saves: number?, lastSave: number? } = if old and old.meta
+					then old.meta
+					else {}
+				if meta.session and not isMine(meta.session) then
+					lost = true
+					return nil
+				end
+				return {
+					data = snapshot,
+					meta = {
+						session = if release then nil else mySession(),
+						saves = (meta.saves or 0) + 1,
+						lastSave = now(),
+					},
+				}
+			end)
+			return nil
 		end)
 		if ok then
 			break

@@ -6,7 +6,7 @@ local Theme = require(script.Parent.Theme)
 
 local Builder = {}
 
-function Builder.new(className: string, props: { [string]: any }?, children: { Instance }?): any
+function Builder.new(className: string, props: { [string]: any }?, children: { any }?): any
 	local instance = Instance.new(className)
 	local parent = nil
 	if props then
@@ -29,11 +29,11 @@ function Builder.new(className: string, props: { [string]: any }?, children: { I
 	return instance
 end
 
-function Builder.corner(radius: UDim?): UICorner
+function Builder.corner(radius: UDim?): Instance
 	return Builder.new("UICorner", { CornerRadius = radius or Theme.corner })
 end
 
-function Builder.stroke(color: Color3?, thickness: number?): UIStroke
+function Builder.stroke(color: Color3?, thickness: number?): Instance
 	return Builder.new("UIStroke", {
 		Color = color or Color3.new(0, 0, 0),
 		Thickness = thickness or 2,
@@ -42,12 +42,12 @@ function Builder.stroke(color: Color3?, thickness: number?): UIStroke
 	})
 end
 
-function Builder.padding(pixels: number?): UIPadding
+function Builder.padding(pixels: number?): Instance
 	local p = UDim.new(0, pixels or Theme.padding)
 	return Builder.new("UIPadding", { PaddingTop = p, PaddingBottom = p, PaddingLeft = p, PaddingRight = p })
 end
 
-function Builder.list(direction: Enum.FillDirection?, spacing: number?, align: Enum.HorizontalAlignment?): UIListLayout
+function Builder.list(direction: Enum.FillDirection?, spacing: number?, align: Enum.HorizontalAlignment?): Instance
 	return Builder.new("UIListLayout", {
 		FillDirection = direction or Enum.FillDirection.Vertical,
 		Padding = UDim.new(0, spacing or 8),

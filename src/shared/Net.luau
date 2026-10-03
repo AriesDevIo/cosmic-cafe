@@ -115,7 +115,11 @@ function Net.onServerEvent(name: string, handler: (player: Player, ...unknown) -
 		if not limiter:check(player, os.clock()) then
 			return
 		end
-		local ok, err = pcall(handler, player, ...)
+		local args = table.pack(...)
+		local ok, err = pcall(function()
+			handler(player, table.unpack(args, 1, args.n))
+			return nil
+		end)
 		if not ok then
 			warn(string.format("[Net] %s from %s failed: %s", name, player.Name, tostring(err)))
 		end
