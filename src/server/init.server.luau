@@ -20,6 +20,7 @@ local order = {
 	"CodexService",
 	"CafeService",
 	"StaffService",
+	"OfflineService",
 }
 
 local services: { Service } = {}

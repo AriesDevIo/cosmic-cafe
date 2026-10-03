@@ -8,6 +8,7 @@ type Controller = { start: () -> () }
 local order = {
 	"EffectsController",
 	"HUDController",
+	"PopupController",
 	"ShopController",
 	"StaffController",
 	"WorldObjectsController",
