@@ -15,6 +15,10 @@ local order = {
 	"DataService",
 	"MonetizationService",
 	"StateService",
+	"WorldService",
+	"EconomyService",
+	"CodexService",
+	"CafeService",
 }
 
 local services: { Service } = {}
@@ -25,7 +29,11 @@ for _, service in services do
 	service.init()
 end
 for _, service in services do
-	task.spawn(service.start)
+	service.start()
 end
+
+-- Load players only once every listener is connected.
+local DataService = require(Services:WaitForChild("DataService")) :: any
+DataService.beginLoading()
 
 print("[CosmicCafe] server ready")

@@ -1,9 +1,20 @@
 --!strict
--- Client entry point. Controllers are added step by step.
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Net = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Net"))
+-- Client entry point: starts every controller in order.
 
-Net.event("State").OnClientEvent:Connect(function(snapshot)
-	print("[CosmicCafe] state received, money =", snapshot.profile.money)
-end)
-Net.event("Ready"):FireServer()
+local Controllers = script:WaitForChild("Controllers")
+
+type Controller = { start: () -> () }
+
+local order = {
+	"EffectsController",
+	"HUDController",
+	"ShopController",
+	"WorldObjectsController",
+	-- StateController last: it fires Ready, so every listener must be connected.
+	"StateController",
+}
+
+for _, name in order do
+	local controller = require(Controllers:WaitForChild(name)) :: any
+	(controller :: Controller).start()
+end

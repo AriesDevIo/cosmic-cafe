@@ -35,6 +35,8 @@ Economy.cafe = {
 	autoServePassInterval = 2.0, -- game pass auto-serve speed when no Waiter is hired
 	customerPatience = 45, -- seconds a customer waits before leaving
 	customerWalkSpeed = 12, -- studs/second for the walk tween
+	-- Customers are this many times likelier to order a dish that is already cooked.
+	readyOrderBias = 3,
 	-- Fraction of a world's theoretical rate that keeps running while you are
 	-- in a different world and that world has a Manager (before rarity bonus).
 	managerBaseEfficiency = 0.5,
@@ -71,6 +73,7 @@ Economy.daily = {
 	minReward = 50,
 	criticRewardSeconds = 600, -- serving the Food Critic pays 10 minutes of income
 	criticSpawnDelay = 90, -- seconds after joining before the critic shows up
+	criticPatience = 120, -- the critic waits longer than normal customers
 }
 
 Economy.recipeLab = {

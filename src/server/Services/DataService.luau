@@ -295,7 +295,9 @@ function DataService.init()
 	store = chooseStore()
 end
 
-function DataService.start()
+-- Called by the bootstrap after every service has started, so all
+-- `loaded` listeners are connected before the first profile loads.
+function DataService.beginLoading()
 	Players.PlayerAdded:Connect(function(player)
 		task.spawn(onPlayerAdded, player)
 	end)
@@ -305,7 +307,9 @@ function DataService.start()
 	Players.PlayerRemoving:Connect(function(player)
 		task.spawn(onPlayerRemoving, player)
 	end)
+end
 
+function DataService.start()
 	-- Autosave, spread over the interval so we never burst the DataStore budget.
 	task.spawn(function()
 		while true do
